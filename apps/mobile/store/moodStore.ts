@@ -14,6 +14,7 @@ interface MoodState {
 	entries: MoodEntry[];
 	isLoading: boolean;
 	error: string | null;
+	refreshTrigger: boolean;
 
 	// Actions
 	fetchAllEntries: () => Promise<void>;
@@ -31,6 +32,7 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 	entries: [],
 	isLoading: false,
 	error: null,
+	refreshTrigger: false,
 
 	fetchAllEntries: async () => {
 		set({ isLoading: true, error: null });
@@ -61,15 +63,13 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			set((state) => {
 				// Format the date to the same format used in the entries
 				const formattedDate = format(date, "yyyy-MM-dd");
-				
+
 				// Check if we already have an entry for this date
-				const existingEntryIndex = state.entries.findIndex(
-					(e) => e.date === formattedDate
-				);
-				
+				const existingEntryIndex = state.entries.findIndex((e) => e.date === formattedDate);
+
 				// Create a new entries array
 				let newEntries = [...state.entries];
-				
+
 				if (existingEntryIndex >= 0) {
 					// Replace the existing entry
 					newEntries[existingEntryIndex] = entry;
@@ -77,13 +77,14 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 					// Add the new entry
 					newEntries.push(entry);
 				}
-				
+
 				return {
 					entries: newEntries,
-					isLoading: false
+					refreshTrigger: !state.refreshTrigger,
+					isLoading: false,
 				};
 			});
-			
+
 			return entry;
 		} catch (error: any) {
 			console.error("Error fetching mood for date:", error);
@@ -114,16 +115,14 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			const newEntry = await moodService.saveMood(date, mood, note);
 			console.log("Received new entry from API:", newEntry);
 
-			set((state) => {
-				console.log("Updating state with new entry");
-				return {
-					entries: [
-						...state.entries.filter((e) => e.date !== format(date, "yyyy-MM-dd")),
-						newEntry,
-					],
-					isLoading: false,
-				};
-			});
+			set((state) => ({
+				entries: [
+					...state.entries.filter((e) => e.date !== format(date, "yyyy-MM-dd")),
+					newEntry,
+				],
+				refreshTrigger: !state.refreshTrigger,
+				isLoading: false,
+			}));
 		} catch (error: any) {
 			console.error("Error adding mood entry:", error);
 			set({ error: error.message || "Unknown error", isLoading: false });
@@ -136,6 +135,7 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			const updatedEntry = await moodService.updateMood(id, mood, note);
 			set((state) => ({
 				entries: state.entries.map((entry) => (entry.id === id ? updatedEntry : entry)),
+				refreshTrigger: !state.refreshTrigger,
 				isLoading: false,
 			}));
 		} catch (error: any) {
@@ -150,6 +150,7 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			await moodService.deleteMood(id);
 			set((state) => ({
 				entries: state.entries.filter((entry) => entry.id !== id),
+				refreshTrigger: !state.refreshTrigger,
 				isLoading: false,
 			}));
 		} catch (error: any) {

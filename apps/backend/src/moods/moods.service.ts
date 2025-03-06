@@ -36,7 +36,11 @@ export class MoodsService {
     });
   }
 
-  async findByDateRange(startDate: string, endDate: string, userId: string): Promise<MoodEntry[]> {
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+    userId: string,
+  ): Promise<MoodEntry[]> {
     return this.moodEntriesRepository.find({
       where: {
         date: Between(startDate, endDate),
@@ -54,7 +58,7 @@ export class MoodsService {
   ): Promise<MoodEntry> {
     // Check if entry for this date already exists
     const existingEntry = await this.findByDate(date, user.id);
-    
+
     if (existingEntry) {
       // Update existing entry
       existingEntry.mood = mood;
@@ -63,7 +67,7 @@ export class MoodsService {
       }
       return this.moodEntriesRepository.save(existingEntry);
     }
-    
+
     // Create new entry
     const newEntry = this.moodEntriesRepository.create({
       date,
@@ -71,7 +75,7 @@ export class MoodsService {
       note,
       user,
     });
-    
+
     return this.moodEntriesRepository.save(newEntry);
   }
 
@@ -81,10 +85,10 @@ export class MoodsService {
     updates: Partial<MoodEntry>,
   ): Promise<MoodEntry> {
     const entry = await this.findOne(id, userId);
-    
+
     // Update entry fields
     Object.assign(entry, updates);
-    
+
     return this.moodEntriesRepository.save(entry);
   }
 

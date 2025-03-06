@@ -16,9 +16,11 @@ import { LocalStrategy } from './local.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const secret = configService.get<string>('JWT_SECRET') || 'fallback-secret-do-not-use-in-production';
+        const secret =
+          configService.get<string>('JWT_SECRET') ||
+          'fallback-secret-do-not-use-in-production';
         const expiresIn = configService.get<string>('JWT_EXPIRES_IN') || '7d';
-        
+
         return {
           secret,
           signOptions: { expiresIn },
