@@ -6,8 +6,8 @@ interface AuthContextData {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<any>;
+  register: (email: string, password: string, name?: string) => Promise<any>;
   logout: () => Promise<void>;
 }
 
@@ -22,24 +22,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log('Checking authentication status...');
         const authenticated = await authService.isAuthenticated();
-        console.log('Authentication status:', authenticated);
         setIsAuthenticated(authenticated);
         
         if (authenticated) {
-          console.log('User is authenticated, fetching profile');
           // Fetch user profile
           try {
             const profile = await authService.getProfile();
-            console.log('User profile fetched:', profile);
             setUser(profile);
           } catch (profileError) {
             console.error('Error fetching profile:', profileError);
             // Don't set unauthenticated here - token might still be valid but profile fetch failed
           }
-        } else {
-          console.log('User is not authenticated');
         }
       } catch (error) {
         console.error('Auth check error:', error);
@@ -57,9 +51,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     
     try {
-      console.log('AuthContext: Logging in user', email);
       const response = await authService.login(email, password);
-      console.log('AuthContext: Login successful, setting authenticated state');
       
       // Small delay to ensure token is stored
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -67,7 +59,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(true);
       setUser(response.user);
       
-      console.log('AuthContext: Authentication state updated');
       return response;
     } catch (error) {
       console.error('Login error:', error);
@@ -83,9 +74,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(true);
     
     try {
-      console.log('AuthContext: Registering user', email);
       const response = await authService.register(email, password, name);
-      console.log('AuthContext: Registration successful, setting authenticated state');
       
       // Small delay to ensure token is stored
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -93,7 +82,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(true);
       setUser(response.user);
       
-      console.log('AuthContext: Registration complete, authentication state updated');
       return response;
     } catch (error) {
       console.error('Register error:', error);

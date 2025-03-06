@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { WinstonModule } from 'nest-winston';
 import * as winston from 'winston';
 
@@ -49,9 +49,12 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3000);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
 
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  // Use the logger instance instead of console.log
+  const logger = new Logger('Bootstrap');
+  logger.log(`Application is running on: ${await app.getUrl()}`);
 }
 
 bootstrap();

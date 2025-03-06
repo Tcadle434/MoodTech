@@ -5,11 +5,10 @@ import {
 	Modal as RNModal,
 	SafeAreaView,
 	Alert,
-	Dimensions,
 	StatusBar,
 	Animated,
 } from "react-native";
-import { Layout, Text, Card, Button, Icon, Input, Spinner } from "@ui-kitten/components";
+import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { MoodType } from "shared";
@@ -18,64 +17,63 @@ import { Colors } from "@/constants/Colors";
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
-// Get the screen dimensions
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+// Mood emoji mapping helper
+const MOOD_EMOJIS = {
+	[MoodType.HAPPY]: "😊",
+	[MoodType.NEUTRAL]: "😐",
+	[MoodType.SAD]: "😢",
+};
 
+// Mood gradient colors helper
+const MOOD_COLORS = {
+	[MoodType.HAPPY]: {
+		gradient: ['#84B59F', '#6B9681'],  // Success/tertiary colors
+		text: '#ffffff',
+	},
+	[MoodType.NEUTRAL]: {
+		gradient: ['#5B9AA9', '#4A7F8C'],  // Primary color
+		text: '#ffffff',
+	},
+	[MoodType.SAD]: {
+		gradient: ['#7B98A6', '#6C8490'],  // Neutral, more subdued
+		text: '#ffffff',
+	},
+};
+
+// Get mood name helper
+const getMoodName = (mood: MoodType): string => {
+	switch (mood) {
+		case MoodType.HAPPY: return "Happy";
+		case MoodType.NEUTRAL: return "Neutral";
+		case MoodType.SAD: return "Sad";
+		default: return "";
+	}
+};
+
+// Mood selection component
 const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) => {
 	const scheme = useColorScheme();
 	const colors = Colors[scheme];
-	
-	const emojis = {
-		[MoodType.HAPPY]: "😊",
-		[MoodType.NEUTRAL]: "😐",
-		[MoodType.SAD]: "😢",
-	};
-	
-	// This determines the color of each mood card
-	const moodColors = {
-		[MoodType.HAPPY]: {
-			gradient: ['#84B59F', '#6B9681'],  // Success/tertiary colors
-			text: '#ffffff',
-		},
-		[MoodType.NEUTRAL]: {
-			gradient: ['#5B9AA9', '#4A7F8C'],  // Primary color
-			text: '#ffffff',
-		},
-		[MoodType.SAD]: {
-			gradient: ['#7B98A6', '#6C8490'],  // Neutral, more subdued
-			text: '#ffffff',
-		},
-	};
-
-	// Use a direct onPress handler without any wrapper function
-	const handlePress = () => {
-		console.log("Direct MoodEmoji press for type:", type);
-		if (onPress) onPress();
-	};
 
 	return (
 		<TouchableOpacity
-			onPress={handlePress}
+			onPress={onPress}
 			activeOpacity={0.8}
 			style={styles.moodTouchable}
 			hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 		>
 			<Animated.View style={[styles.moodCardContainer, { shadowColor: colors.text }]}>
 				<LinearGradient
-					colors={moodColors[type].gradient}
+					colors={MOOD_COLORS[type].gradient}
 					start={{ x: 0, y: 0 }}
 					end={{ x: 1, y: 1 }}
 					style={styles.moodCard}
 				>
-					<Text style={styles.emoji}>{emojis[type]}</Text>
-					<Text category="s1" style={[styles.moodLabel, { color: moodColors[type].text }]}>
-						{type === MoodType.HAPPY
-							? "Happy"
-							: type === MoodType.NEUTRAL
-								? "Neutral"
-								: "Sad"}
+					<Text style={styles.emoji}>{MOOD_EMOJIS[type]}</Text>
+					<Text category="s1" style={[styles.moodLabel, { color: MOOD_COLORS[type].text }]}>
+						{getMoodName(type)}
 					</Text>
 				</LinearGradient>
 			</Animated.View>
@@ -91,19 +89,14 @@ export default function HomeScreen() {
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
 	
-	// State to directly track today's mood from the API
+	// State to track today's mood from the API
 	const [todayMoodEntry, setTodayMoodEntry] = useState<any>(null);
 	
 	const scheme = useColorScheme();
 	const colors = Colors[scheme];
-	const navigation = useNavigation();
 
 	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
 	const fetchMoodForDate = useMoodStore((state) => state.fetchMoodForDate);
-	
-	// Add debug logs
-	console.log("HomeScreen render - isLoading:", isLoading);
-	console.log("HomeScreen render - todayMoodEntry:", todayMoodEntry);
 
 	// Animation effect when component mounts
 	useEffect(() => {
@@ -121,86 +114,42 @@ export default function HomeScreen() {
 		]).start();
 	}, [fadeAnim, scaleAnim]);
 	
-	// Add focus effect to refresh data when the screen comes into focus
+	// Fetch mood data function - used by both initial load and focus effect
+	const fetchMoodData = async () => {
+		setIsLoading(true);
+		try {
+			const result = await fetchMoodForDate(new Date());
+			setTodayMoodEntry(result);
+		} catch (error) {
+			console.error("Error fetching mood data:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+	
+	// Refresh data when the screen comes into focus
 	useFocusEffect(
 		React.useCallback(() => {
-			console.log("Home: Focus effect triggered");
-			const refreshData = async () => {
-				try {
-					setIsLoading(true);
-					const result = await fetchMoodForDate(new Date());
-					console.log("Focus effect fetch result:", result);
-					setTodayMoodEntry(result);
-				} catch (error) {
-					console.error("Error refreshing home data:", error);
-				} finally {
-					setIsLoading(false);
-				}
-			};
-			
-			refreshData();
+			fetchMoodData();
 		}, [fetchMoodForDate])
 	);
 	
-	// Fetch today's mood on component mount
+	// Initial data fetch on component mount
 	useEffect(() => {
-		const loadTodaysMood = async () => {
-			setIsLoading(true);
-			try {
-				// Increased delay to ensure auth is set up
-				await new Promise((resolve) => setTimeout(resolve, 1000));
-
-				console.log("Fetching today's mood from HomeScreen...");
-				const result = await fetchMoodForDate(new Date());
-				console.log("Initial fetch result:", result);
-
-				// Store the result in local state
-				setTodayMoodEntry(result);
-
-				if (result === null || result === undefined) {
-					console.log("No mood found for today, showing selection UI");
-				} else {
-					console.log("Successfully fetched mood:", result);
-				}
-			} catch (error) {
-				console.error("Error fetching today's mood:", error);
-				// Don't show an error to the user, just let them add their mood
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		// Initial load
-		loadTodaysMood();
+		// Slight delay to ensure auth is set up
+		setTimeout(fetchMoodData, 500);
 	}, []);
 
-	const handleSelectMood = (mood: MoodType) => {
-		console.log("handleSelectMood called with mood:", mood);
-
-		// Set both states at once
-		setSelectedMood(mood);
-		setMoodModalVisible(true);
-	};
-
 	const handleSaveMood = async () => {
-		console.log("Save button pressed - handleSaveMood function");
-		console.log("selectedMood is:", selectedMood);
 		try {
-			if (selectedMood === null) {
-				console.log("No mood selected, using Happy as default");
-				// Use happy as default if somehow no mood is selected
-				await addMoodEntry(new Date(), MoodType.HAPPY, note);
-			} else {
-				console.log("Selected mood:", selectedMood, "note:", note);
-				await addMoodEntry(new Date(), selectedMood, note);
-			}
-			console.log("Successfully saved mood!");
+			const moodToSave = selectedMood || MoodType.HAPPY;
+			await addMoodEntry(new Date(), moodToSave, note);
+			
 			setMoodModalVisible(false);
 			setNote("");
 
-			// Refresh the mood data and update local state
+			// Refresh the mood data
 			const updatedMood = await fetchMoodForDate(new Date());
-			console.log("Updated mood after save:", updatedMood);
 			setTodayMoodEntry(updatedMood);
 		} catch (error) {
 			console.error("Error saving mood:", error);
@@ -211,20 +160,6 @@ export default function HomeScreen() {
 	// Function to determine if we have a valid mood to show
 	const hasValidMoodToday = () => {
 		return !!todayMoodEntry && !!todayMoodEntry.mood;
-	};
-
-	// Get the mood gradient colors for display
-	const getMoodGradient = (moodType: MoodType) => {
-		switch (moodType) {
-			case MoodType.HAPPY:
-				return ['#84B59F', '#6B9681']; // Success/tertiary colors
-			case MoodType.NEUTRAL:
-				return ['#5B9AA9', '#4A7F8C']; // Primary color
-			case MoodType.SAD:
-				return ['#7B98A6', '#6C8490']; // Neutral, more subdued
-			default:
-				return ['#5B9AA9', '#4A7F8C']; // Primary color as default
-		}
 	};
 	
 	const today = format(new Date(), "EEEE, MMMM d");
@@ -279,27 +214,19 @@ export default function HomeScreen() {
 							</Text>
 							<View style={[styles.todayMoodCardContainer, { shadowColor: colors.text }]}>
 								<LinearGradient
-									colors={getMoodGradient(todayMoodEntry.mood)}
+									colors={MOOD_COLORS[todayMoodEntry.mood].gradient}
 									start={{ x: 0, y: 0 }}
 									end={{ x: 1, y: 1 }}
 									style={styles.todayMoodCard}
 								>
 									<Text style={styles.todayEmoji}>
-										{todayMoodEntry.mood === MoodType.HAPPY
-											? "😊"
-											: todayMoodEntry.mood === MoodType.NEUTRAL
-												? "😐"
-												: "😢"}
+										{MOOD_EMOJIS[todayMoodEntry.mood]}
 									</Text>
 									<Text 
 										category="s1" 
 										style={styles.todayMoodType}
 									>
-										{todayMoodEntry.mood === MoodType.HAPPY
-											? "Happy"
-											: todayMoodEntry.mood === MoodType.NEUTRAL
-												? "Neutral"
-												: "Sad"}
+										{getMoodName(todayMoodEntry.mood)}
 									</Text>
 									<View style={styles.noteDivider} />
 									<Text 
@@ -331,30 +258,16 @@ export default function HomeScreen() {
 								Tap on an option below to record your mood
 							</Text>
 							<View style={styles.moodRow}>
-								<MoodEmoji
-									type={MoodType.HAPPY}
-									onPress={() => {
-										console.log("Happy selected");
-										setSelectedMood(MoodType.HAPPY);
-										setMoodModalVisible(true);
-									}}
-								/>
-								<MoodEmoji
-									type={MoodType.NEUTRAL}
-									onPress={() => {
-										console.log("Neutral selected");
-										setSelectedMood(MoodType.NEUTRAL);
-										setMoodModalVisible(true);
-									}}
-								/>
-								<MoodEmoji
-									type={MoodType.SAD}
-									onPress={() => {
-										console.log("Sad selected");
-										setSelectedMood(MoodType.SAD);
-										setMoodModalVisible(true);
-									}}
-								/>
+								{Object.values(MoodType).map((mood) => (
+									<MoodEmoji
+										key={mood}
+										type={mood}
+										onPress={() => {
+											setSelectedMood(mood);
+											setMoodModalVisible(true);
+										}}
+									/>
+								))}
 							</View>
 						</Animated.View>
 					)}
@@ -363,10 +276,7 @@ export default function HomeScreen() {
 						visible={moodModalVisible}
 						animationType="slide"
 						transparent={true}
-						onRequestClose={() => {
-							console.log("Modal close requested");
-							setMoodModalVisible(false);
-						}}
+						onRequestClose={() => setMoodModalVisible(false)}
 					>
 						<BlurView 
 							intensity={30} 
@@ -387,11 +297,7 @@ export default function HomeScreen() {
 								
 								<View style={styles.selectedMoodContainer}>
 									<Text style={styles.selectedMoodEmoji}>
-										{selectedMood === MoodType.HAPPY
-											? "😊"
-											: selectedMood === MoodType.NEUTRAL
-												? "😐"
-												: "😢"}
+										{selectedMood ? MOOD_EMOJIS[selectedMood] : ""}
 									</Text>
 									<Text 
 										category="s1" 
@@ -399,11 +305,7 @@ export default function HomeScreen() {
 									>
 										You're feeling {" "}
 										<Text style={{ fontWeight: '600', color: colors.text }}>
-											{selectedMood === MoodType.HAPPY
-												? "Happy"
-												: selectedMood === MoodType.NEUTRAL
-													? "Neutral"
-													: "Sad"}
+											{selectedMood ? getMoodName(selectedMood) : ""}
 										</Text>
 									</Text>
 								</View>
@@ -414,17 +316,11 @@ export default function HomeScreen() {
 									placeholder="What happened today? (optional)"
 									placeholderTextColor={colors.textSecondary}
 									value={note}
-									onChangeText={(text) => {
-										console.log("Note changed:", text);
-										setNote(text);
-									}}
+									onChangeText={setNote}
 									style={styles.noteInput}
 								/>
 								<Button
-									onPress={() => {
-										console.log("Save button pressed inside modal");
-										handleSaveMood();
-									}}
+									onPress={handleSaveMood}
 									style={styles.saveButton}
 									status="primary"
 								>
@@ -433,10 +329,7 @@ export default function HomeScreen() {
 								<Button
 									appearance="ghost"
 									status="basic"
-									onPress={() => {
-										console.log("Cancel button pressed");
-										setMoodModalVisible(false);
-									}}
+									onPress={() => setMoodModalVisible(false)}
 								>
 									Cancel
 								</Button>
