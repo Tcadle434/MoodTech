@@ -26,11 +26,6 @@ export const moodService = {
   // Create or update a mood entry
   saveMood: async (date: Date, mood: MoodType, note?: string) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
-    console.log('Making saveMood API call:', {
-      endpoint: apiConfig.MOODS.BASE,
-      payload: { date: formattedDate, mood, note }
-    });
-    
     return apiClient.post(apiConfig.MOODS.BASE, {
       date: formattedDate,
       mood,

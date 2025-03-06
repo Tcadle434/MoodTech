@@ -16,8 +16,7 @@ export class MoodEntry {
   date: string; // Store as ISO date string (YYYY-MM-DD)
 
   @Column({
-    type: 'text', // Use text for simplicity instead of enum to avoid PostgreSQL enum creation issues
-    enum: MoodType,
+    type: 'text', // Store as text but validate against enum values
     default: MoodType.NEUTRAL,
   })
   mood: MoodType;

@@ -23,9 +23,7 @@ import {
 	startOfMonth,
 	subDays,
 	isSameDay,
-	addDays,
 	isFuture,
-	parseISO,
 	endOfMonth,
 } from "date-fns";
 import { MoodType } from "shared";
@@ -44,33 +42,41 @@ interface MoodEntry {
 	note?: string;
 }
 
-// Helper function for mood color
-const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "light") => {
-	const colors = Colors[colorScheme];
+// Mood emoji mapping helper
+const MOOD_EMOJIS = {
+	[MoodType.HAPPY]: "😊",
+	[MoodType.NEUTRAL]: "😐",
+	[MoodType.SAD]: "😢",
+};
 
+// Mood gradients mapping
+const MOOD_GRADIENTS = {
+	[MoodType.HAPPY]: ["#84B59F", "#6B9681"], // Success/tertiary colors
+	[MoodType.NEUTRAL]: ["#5B9AA9", "#4A7F8C"], // Primary color
+	[MoodType.SAD]: ["#7B98A6", "#6C8490"], // Neutral, more subdued
+};
+
+// Get mood color 
+const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "light"): string => {
 	switch (mood) {
 		case MoodType.HAPPY:
-			return colorScheme === "light" ? "#84B59F" : "#8FC0A9"; // Success/tertiary colors
+			return colorScheme === "light" ? "#84B59F" : "#8FC0A9";
 		case MoodType.NEUTRAL:
-			return colorScheme === "light" ? "#5B9AA9" : "#64A7B5"; // Primary color
+			return colorScheme === "light" ? "#5B9AA9" : "#64A7B5";
 		case MoodType.SAD:
-			return colorScheme === "light" ? "#7B98A6" : "#6E8C9E"; // Neutral color
+			return colorScheme === "light" ? "#7B98A6" : "#6E8C9E";
 		default:
 			return "transparent";
 	}
 };
 
-// Helper function for mood gradients
-const getMoodGradient = (mood: MoodType) => {
+// Get mood name helper
+const getMoodName = (mood: MoodType): string => {
 	switch (mood) {
-		case MoodType.HAPPY:
-			return ["#84B59F", "#6B9681"]; // Success/tertiary colors
-		case MoodType.NEUTRAL:
-			return ["#5B9AA9", "#4A7F8C"]; // Primary color
-		case MoodType.SAD:
-			return ["#7B98A6", "#6C8490"]; // Neutral, more subdued
-		default:
-			return ["#5B9AA9", "#4A7F8C"]; // Primary color as default
+		case MoodType.HAPPY: return "Happy";
+		case MoodType.NEUTRAL: return "Neutral";
+		case MoodType.SAD: return "Sad";
+		default: return "";
 	}
 };
 
@@ -116,20 +122,18 @@ const DayCell = (props: DayCellProps) => {
 			{...cellProps}
 		>
 			{moodEntry ? (
-				<>
-					<View style={[styles.moodIndicator, { shadowColor: colors.text }]}>
-						<LinearGradient
-							colors={getMoodGradient(moodEntry.mood)}
-							style={styles.moodGradient}
-							start={{ x: 0, y: 0 }}
-							end={{ x: 1, y: 1 }}
-						>
-							<Text
-								style={[style?.text, styles.moodDayText]}
-							>{`${date.getDate()}`}</Text>
-						</LinearGradient>
-					</View>
-				</>
+				<View style={[styles.moodIndicator, { shadowColor: colors.text }]}>
+					<LinearGradient
+						colors={MOOD_GRADIENTS[moodEntry.mood]}
+						style={styles.moodGradient}
+						start={{ x: 0, y: 0 }}
+						end={{ x: 1, y: 1 }}
+					>
+						<Text
+							style={[style?.text, styles.moodDayText]}
+						>{`${date.getDate()}`}</Text>
+					</LinearGradient>
+				</View>
 			) : (
 				<>
 					<Text style={[style?.text, { color: colors.text }]}>{`${date.getDate()}`}</Text>
@@ -159,7 +163,6 @@ export default function CalendarScreen() {
 
 	const { entries, refreshTrigger, fetchEntriesForDateRange } = useMoodStore();
 	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
-	const updateMoodEntry = useMoodStore((state) => state.updateMoodEntry);
 	const fetchMoodForDate = useMoodStore((state) => state.fetchMoodForDate);
 
 	// Animation effect when component mounts
@@ -178,36 +181,32 @@ export default function CalendarScreen() {
 		]).start();
 	}, [fadeAnim, scaleAnim]);
 
-	// Load mood data for the current month
+	// Load current month's data
+	const loadMonthData = async (month: Date) => {
+		setIsLoading(true);
+		try {
+			const start = startOfMonth(month);
+			const end = endOfMonth(month);
+			await fetchEntriesForDateRange(start, end);
+		} catch (error) {
+			console.error("Error fetching month data:", error);
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Initial load on mount
 	useEffect(() => {
-		const loadMonthData = async () => {
-			setIsLoading(true);
-			try {
-				// Small delay to ensure auth is set up
-				await new Promise((resolve) => setTimeout(resolve, 500));
-
-				console.log("Calendar: Loading month data for", format(currentMonth, "MMMM yyyy"));
-				const start = startOfMonth(currentMonth);
-				const end = endOfMonth(currentMonth);
-				await fetchEntriesForDateRange(start, end);
-				console.log("Calendar: Month data loaded successfully");
-			} catch (error) {
-				console.error("Error fetching month data:", error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadMonthData();
+		// Small delay to ensure auth is set up
+		setTimeout(() => loadMonthData(currentMonth), 500);
 	}, [currentMonth]);
 
-	// Use focus effect to refresh data when screen comes into focus
+	// Refresh data when screen comes into focus
 	useFocusEffect(
 		React.useCallback(() => {
-			// Only refresh data, don't set loading state
+			// Don't show loading spinner on focus refresh
 			const refreshData = async () => {
 				try {
-					console.log("Calendar: Refreshing data on focus");
 					const start = startOfMonth(currentMonth);
 					const end = endOfMonth(currentMonth);
 					await fetchEntriesForDateRange(start, end);
@@ -232,11 +231,8 @@ export default function CalendarScreen() {
 	}, [refreshTrigger, currentMonth, fetchEntriesForDateRange]);
 
 	const handleDayPress = async (date: Date) => {
-		// Only allow selecting today or past dates within the last week
-		const currentDate = new Date();
-		const oneWeekAgo = subDays(currentDate, 7);
-
-		if (isFuture(date) && !isSameDay(date, currentDate)) {
+		// Only allow selecting today or past dates
+		if (isFuture(date) && !isSameDay(date, new Date())) {
 			return;
 		}
 
@@ -279,12 +275,47 @@ export default function CalendarScreen() {
 		}
 	};
 
-	const handleMonthChange = (nextDate: Date) => {
-		setCurrentMonth(nextDate);
+	// Render mood selection buttons in the modal
+	const renderMoodButtons = () => {
+		return Object.values(MoodType).map((mood) => (
+			<TouchableOpacity
+				key={mood}
+				style={[
+					styles.moodButton,
+					{
+						borderColor: selectedMood === mood 
+							? getMoodColor(mood, scheme) 
+							: colors.subtle,
+					},
+					selectedMood === mood && [
+						styles.selectedMoodButton,
+						{
+							backgroundColor: `${getMoodColor(mood, scheme)}20`,
+						},
+					],
+				]}
+				activeOpacity={0.7}
+				onPress={() => setSelectedMood(mood)}
+			>
+				<Text style={styles.moodButtonEmoji}>{MOOD_EMOJIS[mood]}</Text>
+				<Text style={{ color: colors.text }}>{getMoodName(mood)}</Text>
+			</TouchableOpacity>
+		));
 	};
 
-	const handleSelectMood = (mood: MoodType) => {
-		setSelectedMood(mood);
+	// Render legend items
+	const renderLegendItems = () => {
+		return Object.values(MoodType).map((mood) => (
+			<View key={mood} style={styles.legendItem}>
+				<LinearGradient
+					colors={MOOD_GRADIENTS[mood]}
+					style={styles.legendColor}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 1 }}
+				/>
+				<Text style={{ color: colors.text }}>{getMoodName(mood)}</Text>
+			</View>
+		));
 	};
 
 	return (
@@ -341,38 +372,12 @@ export default function CalendarScreen() {
 									renderDay={(props) => (
 										<DayCell {...props} moodEntries={entries} />
 									)}
-									onVisibleDateChange={handleMonthChange}
+									onVisibleDateChange={setCurrentMonth}
 								/>
 							</View>
 
 							<View style={[styles.legend, { backgroundColor: colors.surface }]}>
-								<View style={styles.legendItem}>
-									<LinearGradient
-										colors={getMoodGradient(MoodType.HAPPY)}
-										style={styles.legendColor}
-										start={{ x: 0, y: 0 }}
-										end={{ x: 1, y: 1 }}
-									/>
-									<Text style={{ color: colors.text }}>Happy</Text>
-								</View>
-								<View style={styles.legendItem}>
-									<LinearGradient
-										colors={getMoodGradient(MoodType.NEUTRAL)}
-										style={styles.legendColor}
-										start={{ x: 0, y: 0 }}
-										end={{ x: 1, y: 1 }}
-									/>
-									<Text style={{ color: colors.text }}>Neutral</Text>
-								</View>
-								<View style={styles.legendItem}>
-									<LinearGradient
-										colors={getMoodGradient(MoodType.SAD)}
-										style={styles.legendColor}
-										start={{ x: 0, y: 0 }}
-										end={{ x: 1, y: 1 }}
-									/>
-									<Text style={{ color: colors.text }}>Sad</Text>
-								</View>
+								{renderLegendItems()}
 							</View>
 						</ScrollView>
 					)}
@@ -419,23 +424,16 @@ export default function CalendarScreen() {
 											]}
 										>
 											<LinearGradient
-												colors={getMoodGradient(
-													selectedMood || MoodType.HAPPY
-												)}
+												colors={MOOD_GRADIENTS[selectedMood || MoodType.HAPPY]}
 												style={styles.moodDetailGradient}
 												start={{ x: 0, y: 0 }}
 												end={{ x: 1, y: 1 }}
 											>
 												<Text style={styles.moodEmoji}>
-													{selectedMood === MoodType.HAPPY
-														? "😊"
-														: selectedMood === MoodType.NEUTRAL
-															? "😐"
-															: "😢"}
+													{selectedMood ? MOOD_EMOJIS[selectedMood] : ""}
 												</Text>
 												<Text category="h6" style={styles.moodDetailTitle}>
-													{selectedMood?.charAt(0).toUpperCase() +
-														selectedMood?.slice(1)}
+													{selectedMood ? getMoodName(selectedMood) : ""}
 												</Text>
 
 												{note ? (
@@ -465,80 +463,7 @@ export default function CalendarScreen() {
 										</Text>
 
 										<View style={styles.moodButtonRow}>
-											<TouchableOpacity
-												style={[
-													styles.moodButton,
-													{
-														borderColor:
-															selectedMood === MoodType.HAPPY
-																? getMoodColor(
-																		MoodType.HAPPY,
-																		scheme
-																	)
-																: colors.subtle,
-													},
-													selectedMood === MoodType.HAPPY && [
-														styles.selectedMoodButton,
-														{
-															backgroundColor: `${getMoodColor(MoodType.HAPPY, scheme)}20`,
-														},
-													],
-												]}
-												activeOpacity={0.7}
-												onPress={() => handleSelectMood(MoodType.HAPPY)}
-											>
-												<Text style={styles.moodButtonEmoji}>😊</Text>
-												<Text style={{ color: colors.text }}>Happy</Text>
-											</TouchableOpacity>
-
-											<TouchableOpacity
-												style={[
-													styles.moodButton,
-													{
-														borderColor:
-															selectedMood === MoodType.NEUTRAL
-																? getMoodColor(
-																		MoodType.NEUTRAL,
-																		scheme
-																	)
-																: colors.subtle,
-													},
-													selectedMood === MoodType.NEUTRAL && [
-														styles.selectedMoodButton,
-														{
-															backgroundColor: `${getMoodColor(MoodType.NEUTRAL, scheme)}20`,
-														},
-													],
-												]}
-												activeOpacity={0.7}
-												onPress={() => handleSelectMood(MoodType.NEUTRAL)}
-											>
-												<Text style={styles.moodButtonEmoji}>😐</Text>
-												<Text style={{ color: colors.text }}>Neutral</Text>
-											</TouchableOpacity>
-
-											<TouchableOpacity
-												style={[
-													styles.moodButton,
-													{
-														borderColor:
-															selectedMood === MoodType.SAD
-																? getMoodColor(MoodType.SAD, scheme)
-																: colors.subtle,
-													},
-													selectedMood === MoodType.SAD && [
-														styles.selectedMoodButton,
-														{
-															backgroundColor: `${getMoodColor(MoodType.SAD, scheme)}20`,
-														},
-													],
-												]}
-												activeOpacity={0.7}
-												onPress={() => handleSelectMood(MoodType.SAD)}
-											>
-												<Text style={styles.moodButtonEmoji}>😢</Text>
-												<Text style={{ color: colors.text }}>Sad</Text>
-											</TouchableOpacity>
+											{renderMoodButtons()}
 										</View>
 
 										<Input
