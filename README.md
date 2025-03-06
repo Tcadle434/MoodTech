@@ -1,84 +1,150 @@
-# Turborepo starter
+# MoodTech - Daily Mood Tracking Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+![MoodTech Logo](apps/mobile/assets/images/icon.png)
 
-## Using this example
+A comprehensive mood tracking platform designed to help users monitor their emotional wellbeing over time. Track your mood against actionable data. Built as a monorepo using Turborepo for optimal development workflow.
 
-Run the following command:
+## ✨ Features
 
-```sh
-npx create-turbo@latest
-```
+- **Daily Mood Check-ins**: Record your emotional state with customizable notes
+- **Interactive Calendar**: View and analyze your mood history
+- **Personal Analytics**: Track patterns and gain insights from your mood data
+- **Secure Authentication**: Keep your personal data private and secure
+- **Beautiful UI**: Calming, thoughtfully designed interfaces
 
-## What's inside?
+## 🧰 Tech Stack
 
-This Turborepo includes the following packages/apps:
+- **Frontend**: React Native with Expo, TypeScript, UI Kitten
+- **Web Applications**: Next.js
+- **Backend**: NestJS with TypeScript
+- **Database**: PostgreSQL
+- **State Management**: Zustand with AsyncStorage persistence
+- **Data Fetching**: React Query
+- **Monorepo Management**: Turborepo
 
-### Apps and Packages
+## 📱 Applications
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+This monorepo contains the following applications:
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+- `mobile`: React Native mobile application (iOS/Android)
+- `web`: Next.js web dashboard
+- `backend`: NestJS API server
+- `docs`: Next.js documentation site
 
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 🏗️ Project Structure
 
 ```
-cd my-turborepo
-pnpm build
+MoodTech/
+├── apps/
+│   ├── mobile/       # React Native mobile app
+│   ├── web/          # Next.js web dashboard
+│   ├── backend/      # NestJS API server
+│   └── docs/         # Documentation site
+├── packages/
+│   ├── shared/       # Shared types and utilities
+│   ├── ui/           # Shared UI components
+│   ├── eslint-config/# ESLint configurations
+│   └── typescript-config/ # TypeScript configurations
 ```
 
-### Develop
+## 🚀 Getting Started
 
-To develop all apps and packages, run the following command:
+### Prerequisites
 
+- Node.js (v16+)
+- Yarn package manager
+- Docker (for backend development)
+
+### Installation
+
+1. Clone the repository
+
+    ```bash
+    git clone https://github.com/Tcadle434/MoodTech.git
+    cd MoodTech
+    ```
+
+2. Install dependencies
+
+    ```bash
+    yarn install
+    ```
+
+3. Start development servers
+
+    ```bash
+    # Run all applications
+    yarn dev
+
+    # Run with database (for full-stack development)
+    yarn dev:with-db
+
+    # Run specific applications
+    yarn workspace mobile dev
+    yarn workspace web dev
+    yarn workspace backend dev
+    ```
+
+## 📱 Mobile Application
+
+The mobile app provides a seamless experience for recording daily moods and viewing insights:
+
+- **Daily Check-in**: Simple interface for recording your mood
+- **Calendar View**: Interactive calendar showing your mood history
+- **Profile**: Statistics and personalized insights
+
+To run the mobile app independently:
+
+```bash
+cd apps/mobile
+yarn dev
 ```
-cd my-turborepo
-pnpm dev
+
+## 🛠️ Development Workflow
+
+### Building
+
+```bash
+# Build all applications
+yarn build
+
+# Build specific application
+yarn workspace mobile build
 ```
 
-### Remote Caching
+### Testing
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+```bash
+# Run all tests
+yarn test
 
-Turborepo can use a technique known as [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-npx turbo login
+# Test specific application
+yarn workspace mobile test
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### Linting
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+```bash
+# Lint all code
+yarn lint
 
+# Lint specific application
+yarn workspace mobile lint
 ```
-npx turbo link
-```
 
-## Useful Links
+## 🤝 Contributing
 
-Learn more about the power of Turborepo:
+1. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Push to the branch (`git push origin feature/amazing-feature`)
+4. Open a Pull Request
 
-- [Tasks](https://turbo.build/repo/docs/core-concepts/monorepos/running-tasks)
-- [Caching](https://turbo.build/repo/docs/core-concepts/caching)
-- [Remote Caching](https://turbo.build/repo/docs/core-concepts/remote-caching)
-- [Filtering](https://turbo.build/repo/docs/core-concepts/monorepos/filtering)
-- [Configuration Options](https://turbo.build/repo/docs/reference/configuration)
-- [CLI Usage](https://turbo.build/repo/docs/reference/command-line-reference)
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [Turborepo](https://turbo.build/repo)
+- UI Components from [UI Kitten](https://akveo.github.io/react-native-ui-kitten/)
+- Mobile framework by [Expo](https://expo.dev)

@@ -1,50 +1,93 @@
-# Welcome to your Expo app 👋
+# MoodTech Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+![MoodTech](assets/images/icon.png)
 
-## Get started
+A beautifully designed mood tracking application that helps users monitor their emotional wellbeing over time. Cross check your mood with actionable data.
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+- **Daily Mood Check-ins**: Record your mood with customizable notes
+- **Interactive Calendar**: View your mood history with an intuitive calendar interface
+- **Personal Analytics**: Track patterns and gain insights from your mood data
+- **Secure Authentication**: Keep your personal data private and secure
+- **Beautiful UI**: Enjoy a calming, thoughtfully designed interface
 
-2. Start the app
+## Tech Stack
 
-   ```bash
-    npx expo start
-   ```
+- **Framework**: React Native with Expo
+- **Language**: TypeScript
+- **UI Components**: UI Kitten
+- **Navigation**: React Navigation (file-based routing)
+- **State Management**: Zustand with AsyncStorage persistence
+- **API Integration**: React Query with fetch
 
-In the output, you'll find options to open the app in a
+## Getting Started
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Prerequisites
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+- Node.js (v16+)
+- Yarn package manager
+- iOS Simulator or Android Emulator (optional)
 
-## Get a fresh project
+### Installation
 
-When you're ready, run:
+1. Clone the repository
 
-```bash
-npm run reset-project
-```
+    ```bash
+    git clone https://github.com/Tcadle434/MoodTech.git
+    cd MoodTech/apps/mobile
+    ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+2. Install dependencies
 
-## Learn more
+    ```bash
+    yarn install
+    ```
 
-To learn more about developing your project with Expo, look at the following resources:
+3. Start the development server
+    ```bash
+    yarn dev
+    ```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Running on Devices
 
-## Join the community
+- **iOS Simulator**:
 
-Join our community of developers creating universal apps.
+    ```bash
+    yarn ios
+    ```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+- **Android Emulator**:
+
+    ```bash
+    yarn android
+    ```
+
+- **Physical Device**: Scan the QR code with Expo Go app
+
+## Project Structure
+
+- `/app`: Main screens and routes (using file-based routing)
+- `/components`: Reusable UI components
+- `/contexts`: React contexts for global state
+- `/api`: API service functions
+- `/store`: Zustand store configurations
+- `/theme`: UI theming and styling
+- `/hooks`: Custom React hooks
+
+## Contributing
+
+1. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Push to the branch (`git push origin feature/amazing-feature`)
+4. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Built with [Expo](https://expo.dev)
+- UI Components from [UI Kitten](https://akveo.github.io/react-native-ui-kitten/)
+- Part of the MoodTech monorepo using Turborepo
