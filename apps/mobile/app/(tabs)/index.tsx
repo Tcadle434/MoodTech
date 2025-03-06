@@ -5,18 +5,48 @@ import {
 	Modal as RNModal,
 	SafeAreaView,
 	Alert,
+	Dimensions,
+	StatusBar,
+	Animated,
 } from "react-native";
 import { Layout, Text, Card, Button, Icon, Input, Spinner } from "@ui-kitten/components";
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { MoodType } from "shared";
 import { useMoodStore } from "@/store/moodStore";
+import { Colors } from "@/constants/Colors";
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+
+// Get the screen dimensions
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) => {
+	const scheme = useColorScheme();
+	const colors = Colors[scheme];
+	
 	const emojis = {
 		[MoodType.HAPPY]: "😊",
 		[MoodType.NEUTRAL]: "😐",
 		[MoodType.SAD]: "😢",
+	};
+	
+	// This determines the color of each mood card
+	const moodColors = {
+		[MoodType.HAPPY]: {
+			gradient: ['#84B59F', '#6B9681'],  // Success/tertiary colors
+			text: '#ffffff',
+		},
+		[MoodType.NEUTRAL]: {
+			gradient: ['#5B9AA9', '#4A7F8C'],  // Primary color
+			text: '#ffffff',
+		},
+		[MoodType.SAD]: {
+			gradient: ['#7B98A6', '#6C8490'],  // Neutral, more subdued
+			text: '#ffffff',
+		},
 	};
 
 	// Use a direct onPress handler without any wrapper function
@@ -28,20 +58,27 @@ const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) =
 	return (
 		<TouchableOpacity
 			onPress={handlePress}
-			activeOpacity={0.6}
+			activeOpacity={0.8}
 			style={styles.moodTouchable}
 			hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
 		>
-			<Card style={styles.moodCard}>
-				<Text style={styles.emoji}>{emojis[type]}</Text>
-				<Text category="s1" style={styles.moodLabel}>
-					{type === MoodType.HAPPY
-						? "Happy"
-						: type === MoodType.NEUTRAL
-							? "Neutral"
-							: "Sad"}
-				</Text>
-			</Card>
+			<Animated.View style={[styles.moodCardContainer, { shadowColor: colors.text }]}>
+				<LinearGradient
+					colors={moodColors[type].gradient}
+					start={{ x: 0, y: 0 }}
+					end={{ x: 1, y: 1 }}
+					style={styles.moodCard}
+				>
+					<Text style={styles.emoji}>{emojis[type]}</Text>
+					<Text category="s1" style={[styles.moodLabel, { color: moodColors[type].text }]}>
+						{type === MoodType.HAPPY
+							? "Happy"
+							: type === MoodType.NEUTRAL
+								? "Neutral"
+								: "Sad"}
+					</Text>
+				</LinearGradient>
+			</Animated.View>
 		</TouchableOpacity>
 	);
 };
@@ -51,16 +88,60 @@ export default function HomeScreen() {
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
 	const [note, setNote] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
+	const fadeAnim = useRef(new Animated.Value(0)).current;
+	const scaleAnim = useRef(new Animated.Value(0.95)).current;
+	
+	// State to directly track today's mood from the API
+	const [todayMoodEntry, setTodayMoodEntry] = useState<any>(null);
+	
+	const scheme = useColorScheme();
+	const colors = Colors[scheme];
+	const navigation = useNavigation();
 
 	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
 	const fetchMoodForDate = useMoodStore((state) => state.fetchMoodForDate);
-	const getMoodForDate = useMoodStore((state) => state.getMoodForDate);
-	const todaysMood = getMoodForDate(new Date());
-
+	
 	// Add debug logs
-	console.log("HomeScreen render - todaysMood:", todaysMood);
 	console.log("HomeScreen render - isLoading:", isLoading);
+	console.log("HomeScreen render - todayMoodEntry:", todayMoodEntry);
 
+	// Animation effect when component mounts
+	useEffect(() => {
+		Animated.parallel([
+			Animated.timing(fadeAnim, {
+				toValue: 1,
+				duration: 800,
+				useNativeDriver: true,
+			}),
+			Animated.timing(scaleAnim, {
+				toValue: 1,
+				duration: 800,
+				useNativeDriver: true,
+			})
+		]).start();
+	}, [fadeAnim, scaleAnim]);
+	
+	// Add focus effect to refresh data when the screen comes into focus
+	useFocusEffect(
+		React.useCallback(() => {
+			console.log("Home: Focus effect triggered");
+			const refreshData = async () => {
+				try {
+					setIsLoading(true);
+					const result = await fetchMoodForDate(new Date());
+					console.log("Focus effect fetch result:", result);
+					setTodayMoodEntry(result);
+				} catch (error) {
+					console.error("Error refreshing home data:", error);
+				} finally {
+					setIsLoading(false);
+				}
+			};
+			
+			refreshData();
+		}, [fetchMoodForDate])
+	);
+	
 	// Fetch today's mood on component mount
 	useEffect(() => {
 		const loadTodaysMood = async () => {
@@ -71,7 +152,10 @@ export default function HomeScreen() {
 
 				console.log("Fetching today's mood from HomeScreen...");
 				const result = await fetchMoodForDate(new Date());
-				console.log("Fetch result:", result);
+				console.log("Initial fetch result:", result);
+
+				// Store the result in local state
+				setTodayMoodEntry(result);
 
 				if (result === null || result === undefined) {
 					console.log("No mood found for today, showing selection UI");
@@ -86,6 +170,7 @@ export default function HomeScreen() {
 			}
 		};
 
+		// Initial load
 		loadTodaysMood();
 	}, []);
 
@@ -95,15 +180,6 @@ export default function HomeScreen() {
 		// Set both states at once
 		setSelectedMood(mood);
 		setMoodModalVisible(true);
-
-		// Add a direct check to verify the modal should be visible
-		console.log("Modal should now be visible");
-
-		// Force a re-render if needed
-		setTimeout(() => {
-			console.log("After timeout - selectedMood:", selectedMood);
-			console.log("After timeout - moodModalVisible:", moodModalVisible);
-		}, 100);
 	};
 
 	const handleSaveMood = async () => {
@@ -122,170 +198,253 @@ export default function HomeScreen() {
 			setMoodModalVisible(false);
 			setNote("");
 
-			// Refresh the mood data
-			await fetchMoodForDate(new Date());
+			// Refresh the mood data and update local state
+			const updatedMood = await fetchMoodForDate(new Date());
+			console.log("Updated mood after save:", updatedMood);
+			setTodayMoodEntry(updatedMood);
 		} catch (error) {
 			console.error("Error saving mood:", error);
 			Alert.alert("Error", "Could not save your mood. Please try again.");
 		}
 	};
 
+	// Function to determine if we have a valid mood to show
+	const hasValidMoodToday = () => {
+		return !!todayMoodEntry && !!todayMoodEntry.mood;
+	};
+
+	// Get the mood gradient colors for display
+	const getMoodGradient = (moodType: MoodType) => {
+		switch (moodType) {
+			case MoodType.HAPPY:
+				return ['#84B59F', '#6B9681']; // Success/tertiary colors
+			case MoodType.NEUTRAL:
+				return ['#5B9AA9', '#4A7F8C']; // Primary color
+			case MoodType.SAD:
+				return ['#7B98A6', '#6C8490']; // Neutral, more subdued
+			default:
+				return ['#5B9AA9', '#4A7F8C']; // Primary color as default
+		}
+	};
+	
 	const today = format(new Date(), "EEEE, MMMM d");
 
 	return (
-		<Layout style={styles.container}>
-			<SafeAreaView style={styles.safeArea}>
-				<View style={styles.header}>
-					<Text category="h1">Today</Text>
-					<Text category="s1">{today}</Text>
-				</View>
-
-				{isLoading ? (
-					<View style={styles.loadingContainer}>
-						<Spinner size="large" />
-						<Text category="s1" style={{ marginTop: 16 }}>
-							Loading your mood data...
-						</Text>
-					</View>
-				) : todaysMood ? (
-					<View style={styles.todayMoodContainer}>
-						<Text category="h5" style={styles.todayMoodTitle}>
-							Your mood today
-						</Text>
-						<Card style={styles.todayMoodCard}>
-							<Text style={styles.todayEmoji}>
-								{todaysMood.mood === MoodType.HAPPY
-									? "😊"
-									: todaysMood.mood === MoodType.NEUTRAL
-										? "😐"
-										: "😢"}
-							</Text>
-							<Text category="s1" style={styles.todayMoodType}>
-								{todaysMood.mood === MoodType.HAPPY
-									? "Happy"
-									: todaysMood.mood === MoodType.NEUTRAL
-										? "Neutral"
-										: "Sad"}
-							</Text>
-							<Text category="p1" style={styles.todayMoodNote}>
-								{todaysMood.note || "No note added"}
-							</Text>
-						</Card>
-					</View>
-				) : (
-					<View style={styles.moodPromptContainer}>
-						<Text category="h5" style={styles.promptTitle}>
-							How are you feeling today?
-						</Text>
-						<Text category="p2" style={{ marginBottom: 20, textAlign: "center" }}>
-							Tap on an emoji below to record your mood
-						</Text>
-						<View style={styles.moodRow}>
-							<Button
-								style={styles.moodButton}
-								onPress={() => {
-									console.log("Happy button clicked");
-									setSelectedMood(MoodType.HAPPY);
-									setMoodModalVisible(true);
-								}}
-							>
-								😊 Happy
-							</Button>
-
-							<Button
-								style={styles.moodButton}
-								onPress={() => {
-									console.log("Neutral button clicked");
-									setSelectedMood(MoodType.NEUTRAL);
-									setMoodModalVisible(true);
-								}}
-							>
-								😐 Neutral
-							</Button>
-
-							<Button
-								style={styles.moodButton}
-								onPress={() => {
-									console.log("Sad button clicked");
-									setSelectedMood(MoodType.SAD);
-									setMoodModalVisible(true);
-								}}
-							>
-								😢 Sad
-							</Button>
-						</View>
-
-						{/* Test button to directly trigger modal */}
-						<Button
-							style={{ marginTop: 20 }}
-							onPress={() => {
-								console.log("Test button pressed");
-								setSelectedMood(MoodType.HAPPY);
-								setMoodModalVisible(true);
-							}}
+		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
+			<StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
+			<Animated.View 
+				style={[
+					styles.animatedContainer, 
+					{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
+				]}
+			>
+				<SafeAreaView style={styles.safeArea}>
+					<View style={styles.header}>
+						<Text 
+							category="h1" 
+							style={[styles.headerTitle, { color: colors.text }]}
 						>
-							Test Modal
-						</Button>
+							Today
+						</Text>
+						<Text 
+							category="s1" 
+							style={[styles.headerDate, { color: colors.textSecondary }]}
+						>
+							{today}
+						</Text>
 					</View>
-				)}
 
-				<RNModal
-					visible={moodModalVisible}
-					animationType="slide"
-					transparent={true}
-					onRequestClose={() => {
-						console.log("Modal close requested");
-						setMoodModalVisible(false);
-					}}
-				>
-					<View style={styles.modalOverlay}>
-						<View style={styles.modalContent}>
-							<View style={styles.modalHandle} />
-							<Text category="h4" style={styles.modalTitle}>
-								Tell us more
-							</Text>
-							<Text category="p1" style={{ marginBottom: 20 }}>
-								Selected mood:{" "}
-								{selectedMood === MoodType.HAPPY
-									? "Happy"
-									: selectedMood === MoodType.NEUTRAL
-										? "Neutral"
-										: "Sad"}
-							</Text>
-							<Input
-								multiline
-								textStyle={{ minHeight: 120 }}
-								placeholder="What happened today? (optional)"
-								value={note}
-								onChangeText={(text) => {
-									console.log("Note changed:", text);
-									setNote(text);
-								}}
-								style={styles.noteInput}
-							/>
-							<Button
-								onPress={() => {
-									console.log("Save button pressed inside modal");
-									handleSaveMood();
-								}}
-								style={styles.saveButton}
+					{isLoading ? (
+						<View style={styles.loadingContainer}>
+							<Spinner size="large" status="primary" />
+							<Text 
+								category="s1" 
+								style={[styles.loadingText, { color: colors.textSecondary }]}
 							>
-								Save
-							</Button>
-							<Button
-								appearance="ghost"
-								status="basic"
-								onPress={() => {
-									console.log("Cancel button pressed");
-									setMoodModalVisible(false);
-								}}
-							>
-								Cancel
-							</Button>
+								Loading your mood data...
+							</Text>
 						</View>
-					</View>
-				</RNModal>
-			</SafeAreaView>
+					) : hasValidMoodToday() ? (
+						<Animated.View 
+							style={[
+								styles.todayMoodContainer, 
+								{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
+							]}
+						>
+							<Text 
+								category="h5" 
+								style={[styles.todayMoodTitle, { color: colors.text }]}
+							>
+								Your mood today
+							</Text>
+							<View style={[styles.todayMoodCardContainer, { shadowColor: colors.text }]}>
+								<LinearGradient
+									colors={getMoodGradient(todayMoodEntry.mood)}
+									start={{ x: 0, y: 0 }}
+									end={{ x: 1, y: 1 }}
+									style={styles.todayMoodCard}
+								>
+									<Text style={styles.todayEmoji}>
+										{todayMoodEntry.mood === MoodType.HAPPY
+											? "😊"
+											: todayMoodEntry.mood === MoodType.NEUTRAL
+												? "😐"
+												: "😢"}
+									</Text>
+									<Text 
+										category="s1" 
+										style={styles.todayMoodType}
+									>
+										{todayMoodEntry.mood === MoodType.HAPPY
+											? "Happy"
+											: todayMoodEntry.mood === MoodType.NEUTRAL
+												? "Neutral"
+												: "Sad"}
+									</Text>
+									<View style={styles.noteDivider} />
+									<Text 
+										category="p1" 
+										style={styles.todayMoodNote}
+									>
+										{todayMoodEntry.note || "No note added"}
+									</Text>
+								</LinearGradient>
+							</View>
+						</Animated.View>
+					) : (
+						<Animated.View 
+							style={[
+								styles.moodPromptContainer, 
+								{ opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
+							]}
+						>
+							<Text 
+								category="h5" 
+								style={[styles.promptTitle, { color: colors.text }]}
+							>
+								How are you feeling today?
+							</Text>
+							<Text 
+								category="p2" 
+								style={[styles.promptSubtitle, { color: colors.textSecondary }]}
+							>
+								Tap on an option below to record your mood
+							</Text>
+							<View style={styles.moodRow}>
+								<MoodEmoji
+									type={MoodType.HAPPY}
+									onPress={() => {
+										console.log("Happy selected");
+										setSelectedMood(MoodType.HAPPY);
+										setMoodModalVisible(true);
+									}}
+								/>
+								<MoodEmoji
+									type={MoodType.NEUTRAL}
+									onPress={() => {
+										console.log("Neutral selected");
+										setSelectedMood(MoodType.NEUTRAL);
+										setMoodModalVisible(true);
+									}}
+								/>
+								<MoodEmoji
+									type={MoodType.SAD}
+									onPress={() => {
+										console.log("Sad selected");
+										setSelectedMood(MoodType.SAD);
+										setMoodModalVisible(true);
+									}}
+								/>
+							</View>
+						</Animated.View>
+					)}
+
+					<RNModal
+						visible={moodModalVisible}
+						animationType="slide"
+						transparent={true}
+						onRequestClose={() => {
+							console.log("Modal close requested");
+							setMoodModalVisible(false);
+						}}
+					>
+						<BlurView 
+							intensity={30} 
+							tint={scheme === 'dark' ? 'dark' : 'light'}
+							style={styles.modalOverlay}
+						>
+							<View style={[styles.modalContent, {
+								backgroundColor: colors.surface,
+								shadowColor: colors.text,
+							}]}>
+								<View style={[styles.modalHandle, { backgroundColor: colors.subtle }]} />
+								<Text 
+									category="h4" 
+									style={[styles.modalTitle, { color: colors.text }]}
+								>
+									Tell us more
+								</Text>
+								
+								<View style={styles.selectedMoodContainer}>
+									<Text style={styles.selectedMoodEmoji}>
+										{selectedMood === MoodType.HAPPY
+											? "😊"
+											: selectedMood === MoodType.NEUTRAL
+												? "😐"
+												: "😢"}
+									</Text>
+									<Text 
+										category="s1" 
+										style={[styles.selectedMoodText, { color: colors.textSecondary }]}
+									>
+										You're feeling {" "}
+										<Text style={{ fontWeight: '600', color: colors.text }}>
+											{selectedMood === MoodType.HAPPY
+												? "Happy"
+												: selectedMood === MoodType.NEUTRAL
+													? "Neutral"
+													: "Sad"}
+										</Text>
+									</Text>
+								</View>
+								
+								<Input
+									multiline
+									textStyle={{ minHeight: 120, color: colors.text }}
+									placeholder="What happened today? (optional)"
+									placeholderTextColor={colors.textSecondary}
+									value={note}
+									onChangeText={(text) => {
+										console.log("Note changed:", text);
+										setNote(text);
+									}}
+									style={styles.noteInput}
+								/>
+								<Button
+									onPress={() => {
+										console.log("Save button pressed inside modal");
+										handleSaveMood();
+									}}
+									style={styles.saveButton}
+									status="primary"
+								>
+									Save
+								</Button>
+								<Button
+									appearance="ghost"
+									status="basic"
+									onPress={() => {
+										console.log("Cancel button pressed");
+										setMoodModalVisible(false);
+									}}
+								>
+									Cancel
+								</Button>
+							</View>
+						</BlurView>
+					</RNModal>
+				</SafeAreaView>
+			</Animated.View>
 		</Layout>
 	);
 }
@@ -294,12 +453,24 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 	},
+	animatedContainer: {
+		flex: 1,
+	},
 	safeArea: {
 		flex: 1,
 	},
 	header: {
-		padding: 20,
-		paddingTop: 48,
+		padding: 24,
+		paddingTop: 60,
+	},
+	headerTitle: {
+		fontSize: 34,
+		marginBottom: 8,
+		fontWeight: '700',
+	},
+	headerDate: {
+		fontSize: 16,
+		opacity: 0.8,
 	},
 	loadingContainer: {
 		flex: 1,
@@ -307,100 +478,168 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		padding: 20,
 	},
+	loadingText: {
+		marginTop: 20,
+		opacity: 0.8,
+	},
 	moodPromptContainer: {
-		padding: 20,
+		padding: 24,
 		alignItems: "center",
+		justifyContent: "center",
+		flex: 1,
+		marginTop: -40, // Offset to center vertically
 	},
 	promptTitle: {
-		marginBottom: 30,
+		marginBottom: 16,
 		textAlign: "center",
+		fontSize: 28,
+		fontWeight: '600',
+	},
+	promptSubtitle: {
+		marginBottom: 40,
+		textAlign: "center",
+		fontSize: 16,
+		opacity: 0.8,
+		maxWidth: 280,
 	},
 	moodRow: {
 		flexDirection: "row",
 		justifyContent: "space-between",
 		width: "100%",
 		maxWidth: 350,
+		marginHorizontal: 'auto',
 	},
 	moodTouchable: {
 		width: 100,
-		height: 120,
+		height: 140,
+		margin: 8,
+	},
+	moodCardContainer: {
+		width: 100,
+		height: 140,
+		borderRadius: 20,
+		overflow: 'hidden',
+		shadowOffset: { width: 0, height: 8 },
+		shadowOpacity: 0.15,
+		shadowRadius: 12,
+		elevation: 5,
 	},
 	moodCard: {
-		width: 100,
-		height: 120,
+		width: '100%',
+		height: '100%',
 		alignItems: "center",
 		justifyContent: "center",
+		padding: 16,
+		borderRadius: 20,
 	},
 	emoji: {
-		fontSize: 48,
-		marginBottom: 10,
+		fontSize: 52,
+		marginBottom: 16,
 	},
 	moodLabel: {
 		textAlign: "center",
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#FFFFFF',
 	},
 	modalOverlay: {
 		flex: 1,
 		justifyContent: "flex-end",
-		backgroundColor: "rgba(0, 0, 0, 0.4)",
 		zIndex: 1000,
 	},
 	modalContent: {
-		backgroundColor: "white",
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
-		padding: 20,
-		paddingTop: 15,
+		borderTopLeftRadius: 28,
+		borderTopRightRadius: 28,
+		padding: 24,
+		paddingTop: 16,
 		alignItems: "center",
 		zIndex: 1001,
+		shadowOffset: { width: 0, height: -8 },
+		shadowOpacity: 0.1,
+		shadowRadius: 12,
+		elevation: 10,
 	},
 	modalHandle: {
 		width: 40,
 		height: 5,
-		backgroundColor: "#E1E1E1",
 		borderRadius: 3,
-		marginBottom: 20,
+		marginBottom: 24,
 	},
 	modalTitle: {
-		marginBottom: 20,
+		marginBottom: 24,
+		fontSize: 24,
+		fontWeight: '600',
+		textAlign: 'center',
+	},
+	selectedMoodContainer: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 24,
+		width: '100%',
+		padding: 16,
+		borderRadius: 16,
+		backgroundColor: 'rgba(0, 0, 0, 0.03)',
+	},
+	selectedMoodEmoji: {
+		fontSize: 32,
+		marginRight: 16,
+	},
+	selectedMoodText: {
+		fontSize: 16,
 	},
 	noteInput: {
 		width: "100%",
-		marginBottom: 20,
+		marginBottom: 24,
+		borderRadius: 16,
 	},
 	saveButton: {
 		width: "100%",
-		marginBottom: 10,
+		marginBottom: 12,
+		borderRadius: 16,
+		height: 56,
 	},
 	todayMoodContainer: {
-		padding: 20,
+		padding: 24,
 	},
 	todayMoodTitle: {
-		marginBottom: 15,
+		marginBottom: 20,
+		fontSize: 24,
+		fontWeight: '600',
+	},
+	todayMoodCardContainer: {
+		borderRadius: 24,
+		overflow: 'hidden',
+		shadowOffset: { width: 0, height: 8 },
+		shadowOpacity: 0.15,
+		shadowRadius: 16,
+		elevation: 8,
 	},
 	todayMoodCard: {
-		padding: 15,
+		padding: 24,
+		borderRadius: 24,
 	},
 	todayEmoji: {
-		fontSize: 48,
-		marginBottom: 10,
+		fontSize: 60,
+		marginBottom: 16,
 		alignSelf: "center",
+		color: '#FFFFFF',
 	},
 	todayMoodType: {
 		textAlign: "center",
-		marginBottom: 15,
-		fontWeight: "bold",
+		marginBottom: 24,
+		fontWeight: "700",
+		fontSize: 22,
+		color: '#FFFFFF',
+	},
+	noteDivider: {
+		height: 1,
+		width: '100%',
+		backgroundColor: 'rgba(255, 255, 255, 0.2)',
+		marginBottom: 16,
 	},
 	todayMoodNote: {
 		fontStyle: "italic",
-	},
-	moodButton: {
-		width: 100,
-		height: 120,
-		margin: 5,
-	},
-	moodButtonContent: {
-		flex: 1,
-		alignItems: "center",
-		justifyContent: "center",
+		color: 'rgba(255, 255, 255, 0.9)',
+		lineHeight: 20,
 	},
 });

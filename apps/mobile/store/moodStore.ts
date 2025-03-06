@@ -56,8 +56,34 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 				return null;
 			}
 
-			// Don't update the entire entries list for a single fetch
-			set({ isLoading: false });
+			// Update the entries list to include this entry
+			// This ensures the calendar view is updated immediately
+			set((state) => {
+				// Format the date to the same format used in the entries
+				const formattedDate = format(date, "yyyy-MM-dd");
+				
+				// Check if we already have an entry for this date
+				const existingEntryIndex = state.entries.findIndex(
+					(e) => e.date === formattedDate
+				);
+				
+				// Create a new entries array
+				let newEntries = [...state.entries];
+				
+				if (existingEntryIndex >= 0) {
+					// Replace the existing entry
+					newEntries[existingEntryIndex] = entry;
+				} else {
+					// Add the new entry
+					newEntries.push(entry);
+				}
+				
+				return {
+					entries: newEntries,
+					isLoading: false
+				};
+			});
+			
 			return entry;
 		} catch (error: any) {
 			console.error("Error fetching mood for date:", error);

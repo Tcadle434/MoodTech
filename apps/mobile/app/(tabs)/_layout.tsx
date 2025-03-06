@@ -10,11 +10,13 @@ import { useColorScheme } from '@/hooks/useColorScheme';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const colors = Colors[colorScheme ?? 'light'];
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors.tint,
+        tabBarInactiveTintColor: colors.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
@@ -22,21 +24,38 @@ export default function TabLayout() {
           ios: {
             // Use a transparent background on iOS to show the blur effect
             position: 'absolute',
+            height: 88,
+            borderTopWidth: 0,
+            shadowColor: colors.text,
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.05,
+            shadowRadius: 8,
           },
-          default: {},
+          default: {
+            height: 60,
+            borderTopWidth: 0,
+            elevation: 8,
+          },
         }),
+        tabBarLabelStyle: {
+          fontWeight: '500',
+          fontSize: 12,
+        },
+        tabBarIconStyle: {
+          marginTop: 4,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Today',
           tabBarIcon: ({ color }) => <Icon name="home-outline" style={{ width: 24, height: 24, tintColor: color }} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
-          title: 'Calendar',
+          title: 'History',
           tabBarIcon: ({ color }) => <Icon name="calendar-outline" style={{ width: 24, height: 24, tintColor: color }} />,
         }}
       />
