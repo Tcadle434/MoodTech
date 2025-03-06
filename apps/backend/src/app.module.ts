@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
@@ -23,12 +22,10 @@ import { MoodsModule } from './moods/moods.module';
         password: configService.get('DATABASE_PASSWORD') || 'postgres',
         database: configService.get('DATABASE_NAME') || 'moodtech',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: true, // Set to false in production
-        // Add this to ensure PostgreSQL handles enums correctly
+        synchronize: configService.get('NODE_ENV') === 'development',
         extra: {
           trustServerCertificate: true,
         },
-        // Automatically create the enum type in the database
         autoLoadEntities: true,
       }),
     }),
@@ -37,6 +34,6 @@ import { MoodsModule } from './moods/moods.module';
     MoodsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [],
 })
 export class AppModule {}

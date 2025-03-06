@@ -1,4 +1,11 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  OneToMany,
+} from 'typeorm';
 import { Exclude } from 'class-transformer';
 import { MoodEntry } from '../moods/mood-entry.entity';
 
@@ -14,10 +21,10 @@ export class User {
   name: string;
 
   @Column()
-  @Exclude() // Don't expose password in responses
+  @Exclude() // Don't expose hashed password in responses
   password: string;
 
-  @OneToMany(() => MoodEntry, moodEntry => moodEntry.user)
+  @OneToMany(() => MoodEntry, (moodEntry) => moodEntry.user)
   moodEntries: MoodEntry[];
 
   @CreateDateColumn()
