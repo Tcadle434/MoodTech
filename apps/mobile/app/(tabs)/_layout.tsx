@@ -1,9 +1,9 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
+import { Icon } from '@ui-kitten/components';
 
 import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -30,14 +30,21 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          tabBarIcon: ({ color }) => <Icon name="home-outline" style={{ width: 24, height: 24, tintColor: color }} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="calendar"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Calendar',
+          tabBarIcon: ({ color }) => <Icon name="calendar-outline" style={{ width: 24, height: 24, tintColor: color }} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color }) => <Icon name="person-outline" style={{ width: 24, height: 24, tintColor: color }} />,
         }}
       />
     </Tabs>
