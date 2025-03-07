@@ -1,11 +1,14 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { authService } from '@/api';
 import { User } from 'shared';
+import useHealthStore from '@/store/healthStore';
 
 interface AuthContextData {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: User | null;
+  showHealthPrompt: boolean;
+  setShowHealthPrompt: (show: boolean) => void;
   login: (email: string, password: string) => Promise<any>;
   register: (email: string, password: string, name?: string) => Promise<any>;
   logout: () => Promise<void>;
@@ -17,6 +20,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [user, setUser] = useState<User | null>(null);
+  const [showHealthPrompt, setShowHealthPrompt] = useState<boolean>(false);
 
   // Check if user is authenticated on app load
   useEffect(() => {
@@ -82,6 +86,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setIsAuthenticated(true);
       setUser(response.user);
       
+      // Show health prompt after successful registration
+      setShowHealthPrompt(true);
+      
       return response;
     } catch (error) {
       console.error('Register error:', error);
@@ -113,6 +120,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isAuthenticated,
         isLoading,
         user,
+        showHealthPrompt,
+        setShowHealthPrompt,
         login,
         register,
         logout,

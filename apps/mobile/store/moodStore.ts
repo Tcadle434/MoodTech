@@ -1,13 +1,15 @@
 import { create } from "zustand";
-import { MoodType } from "shared";
+import { MoodType, HealthData } from "shared";
 import { format, parseISO } from "date-fns";
-import { moodService } from "@/api";
+import { moodService, healthService } from "@/api";
+import useHealthStore from "./healthStore";
 
 interface MoodEntry {
 	id: string;
 	date: string; // ISO date string
 	mood: MoodType;
 	note?: string;
+	healthData?: HealthData;
 }
 
 interface MoodState {
@@ -20,8 +22,8 @@ interface MoodState {
 	fetchAllEntries: () => Promise<void>;
 	fetchMoodForDate: (date: Date) => Promise<MoodEntry | null>;
 	fetchEntriesForDateRange: (startDate: Date, endDate: Date) => Promise<void>;
-	addMoodEntry: (date: Date, mood: MoodType, note?: string) => Promise<void>;
-	updateMoodEntry: (id: string, mood: MoodType, note?: string) => Promise<void>;
+	addMoodEntry: (date: Date, mood: MoodType, note?: string, includeHealthData?: boolean) => Promise<void>;
+	updateMoodEntry: (id: string, mood: MoodType, note?: string, includeHealthData?: boolean) => Promise<void>;
 	deleteMoodEntry: (id: string) => Promise<void>;
 	getMoodForDate: (date: Date) => MoodEntry | undefined;
 	getEntriesForDateRange: (startDate: Date, endDate: Date) => MoodEntry[];
@@ -106,11 +108,34 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 		}
 	},
 
-	addMoodEntry: async (date, mood, note) => {
+	addMoodEntry: async (date, mood, note, includeHealthData = false) => {
 		set({ isLoading: true, error: null });
 		try {
 			const formattedDate = format(date, "yyyy-MM-dd");
-			const newEntry = await moodService.saveMood(date, mood, note);
+			
+			// If health data should be included, try to fetch it
+			let healthData = undefined;
+			if (includeHealthData) {
+				try {
+					// Get health data from the store or fetch it if needed
+					healthData = await useHealthStore.getState().fetchHealthData(date);
+				} catch (healthError) {
+					console.error("Failed to fetch health data:", healthError);
+					// Continue without health data if there's an error
+				}
+			}
+			
+			// Save mood with optional health data
+			const newEntry = await moodService.saveMood(
+				date, 
+				mood, 
+				note, 
+				healthData ? {
+					steps: healthData.steps,
+					distance: healthData.distance,
+					calories: healthData.calories
+				} : undefined
+			);
 
 			set((state) => ({
 				entries: [
@@ -128,10 +153,37 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 		}
 	},
 
-	updateMoodEntry: async (id, mood, note) => {
+	updateMoodEntry: async (id, mood, note, includeHealthData = false) => {
 		set({ isLoading: true, error: null });
 		try {
-			const updatedEntry = await moodService.updateMood(id, mood, note);
+			// Find the existing entry to get its date
+			const existingEntry = get().entries.find(entry => entry.id === id);
+			
+			// If health data should be included, try to fetch it
+			let healthData = undefined;
+			if (includeHealthData && existingEntry) {
+				try {
+					const date = parseISO(existingEntry.date);
+					// Get health data from the store or fetch it if needed
+					healthData = await useHealthStore.getState().fetchHealthData(date);
+				} catch (healthError) {
+					console.error("Failed to fetch health data:", healthError);
+					// Continue without health data if there's an error
+				}
+			}
+			
+			// Update the mood with optional health data
+			const updatedEntry = await moodService.updateMood(
+				id, 
+				mood, 
+				note,
+				healthData ? {
+					steps: healthData.steps,
+					distance: healthData.distance,
+					calories: healthData.calories
+				} : undefined
+			);
+			
 			set((state) => ({
 				entries: state.entries.map((entry) => (entry.id === id ? updatedEntry : entry)),
 				refreshTrigger: !state.refreshTrigger,

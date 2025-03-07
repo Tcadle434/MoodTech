@@ -7,17 +7,22 @@ import {
 	Alert,
 	StatusBar,
 	Animated,
+	Platform,
 } from "react-native";
-import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
+import { Layout, Text, Button, Input, Spinner, Icon, CheckBox } from "@ui-kitten/components";
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { MoodType } from "shared";
 import { useMoodStore } from "@/store/moodStore";
+import useHealthStore from "@/store/healthStore";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '@/contexts/AuthContext';
+import { HealthPermissionRequest } from '@/components/HealthPermissionRequest';
+import { HealthDataDisplay } from '../health-component';
 
 // Mood emoji mapping helper
 const MOOD_EMOJIS = {
@@ -86,6 +91,7 @@ export default function HomeScreen() {
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
 	const [note, setNote] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
+	const [includeHealthData, setIncludeHealthData] = useState(false);
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
 	
@@ -94,6 +100,11 @@ export default function HomeScreen() {
 	
 	const scheme = useColorScheme();
 	const colors = Colors[scheme];
+	const { showHealthPrompt, setShowHealthPrompt } = useAuth();
+	
+	// Health data integration
+	const hasHealthPermissions = useHealthStore(state => state.hasHealthPermissions);
+	const isHealthKitInitialized = useHealthStore(state => state.isHealthKitInitialized);
 
 	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
 	const fetchMoodForDate = useMoodStore((state) => state.fetchMoodForDate);
@@ -140,13 +151,19 @@ export default function HomeScreen() {
 		setTimeout(fetchMoodData, 500);
 	}, []);
 
+	// Close health permission prompt
+	const handleCloseHealthPrompt = () => {
+		setShowHealthPrompt(false);
+	};
+	
 	const handleSaveMood = async () => {
 		try {
 			const moodToSave = selectedMood || MoodType.HAPPY;
-			await addMoodEntry(new Date(), moodToSave, note);
+			await addMoodEntry(new Date(), moodToSave, note, includeHealthData);
 			
 			setMoodModalVisible(false);
 			setNote("");
+			setIncludeHealthData(false);
 
 			// Refresh the mood data
 			const updatedMood = await fetchMoodForDate(new Date());
@@ -167,6 +184,11 @@ export default function HomeScreen() {
 	return (
 		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
 			<StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
+			{showHealthPrompt && Platform.OS === 'ios' && (
+				<View style={styles.permissionContainer}>
+					<HealthPermissionRequest onComplete={handleCloseHealthPrompt} />
+				</View>
+			)}
 			<Animated.View 
 				style={[
 					styles.animatedContainer, 
@@ -235,6 +257,8 @@ export default function HomeScreen() {
 									>
 										{todayMoodEntry.note || "No note added"}
 									</Text>
+									
+									{todayMoodEntry.healthData && <HealthDataDisplay healthData={todayMoodEntry.healthData} />}
 								</LinearGradient>
 							</View>
 						</Animated.View>
@@ -319,6 +343,21 @@ export default function HomeScreen() {
 									onChangeText={setNote}
 									style={styles.noteInput}
 								/>
+								
+								{Platform.OS === 'ios' && hasHealthPermissions && (
+									<CheckBox
+										style={styles.healthCheckbox}
+										checked={includeHealthData}
+										onChange={nextChecked => setIncludeHealthData(nextChecked)}
+									>
+										{evaProps => (
+											<Text {...evaProps} style={[evaProps.style, { color: colors.textSecondary }]}>
+												Include health data (steps, distance, calories)
+											</Text>
+										)}
+									</CheckBox>
+								)}
+								
 								<Button
 									onPress={handleSaveMood}
 									style={styles.saveButton}
@@ -346,11 +385,26 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 	},
+	permissionContainer: {
+		position: 'absolute',
+		top: 0,
+		left: 0,
+		right: 0,
+		bottom: 0,
+		zIndex: 999,
+		padding: 24,
+		paddingTop: 100,
+		backgroundColor: 'rgba(0,0,0,0.6)',
+	},
 	animatedContainer: {
 		flex: 1,
 	},
 	safeArea: {
 		flex: 1,
+	},
+	healthCheckbox: {
+		alignSelf: 'flex-start',
+		marginBottom: 20,
 	},
 	header: {
 		padding: 24,
@@ -534,5 +588,34 @@ const styles = StyleSheet.create({
 		fontStyle: "italic",
 		color: 'rgba(255, 255, 255, 0.9)',
 		lineHeight: 20,
+	},
+	healthDataContainer: {
+		marginTop: 16,
+	},
+	healthDataDivider: {
+		height: 1,
+		width: '100%',
+		backgroundColor: 'rgba(255, 255, 255, 0.2)',
+		marginBottom: 12,
+	},
+	healthDataTitle: {
+		fontSize: 16,
+		fontWeight: '600',
+		color: '#FFFFFF',
+		marginBottom: 10,
+	},
+	healthDataRow: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		marginBottom: 8,
+	},
+	healthIcon: {
+		width: 18,
+		height: 18,
+		marginRight: 8,
+		tintColor: 'rgba(255, 255, 255, 0.9)',
+	},
+	healthDataText: {
+		color: 'rgba(255, 255, 255, 0.9)',
 	},
 });

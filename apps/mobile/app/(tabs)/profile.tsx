@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { StyleSheet, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, StatusBar } from 'react-native';
+import { StyleSheet, View, ScrollView, SafeAreaView, TouchableOpacity, Animated, StatusBar, Platform } from 'react-native';
 import { Layout, Text, Card, Avatar, Divider, Icon, Button, Spinner } from '@ui-kitten/components';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,9 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMoodStore } from '@/store/moodStore';
+import useHealthStore from '@/store/healthStore';
 import { MoodType } from 'shared';
+import { HealthPermissionRequest } from '@/components/HealthPermissionRequest';
 import { format, subDays, isSameDay, parseISO } from 'date-fns';
 
 export default function ProfileScreen() {
@@ -16,6 +18,10 @@ export default function ProfileScreen() {
   const scheme = useColorScheme();
   const colors = Colors[scheme];
   const [isLoading, setIsLoading] = useState(true);
+  const [showHealthPermissionModal, setShowHealthPermissionModal] = useState(false);
+
+  // Health data permission state
+  const hasHealthPermissions = useHealthStore(state => state.hasHealthPermissions);
   
   // Stat counts
   const [totalDays, setTotalDays] = useState(0);
@@ -477,6 +483,32 @@ export default function ProfileScreen() {
               
               <Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
               
+              {Platform.OS === 'ios' && (
+                <>
+                  <TouchableOpacity 
+                    style={[styles.settingRow, { backgroundColor: colors.surface }]}
+                    onPress={() => setShowHealthPermissionModal(true)}
+                  >
+                    <Icon 
+                      name="heart-outline" 
+                      style={[styles.settingIcon, { tintColor: colors.text }]} 
+                    />
+                    <Text style={[styles.settingText, { color: colors.text }]}>
+                      {hasHealthPermissions ? 'Health Data Connected' : 'Connect Health Data'}
+                    </Text>
+                    <Icon 
+                      name={hasHealthPermissions ? "checkmark-outline" : "chevron-right-outline"} 
+                      style={[
+                        styles.chevronIcon, 
+                        { tintColor: hasHealthPermissions ? '#84B59F' : colors.textSecondary }
+                      ]} 
+                    />
+                  </TouchableOpacity>
+                  
+                  <Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
+                </>
+              )}
+              
               <TouchableOpacity 
                 style={[styles.settingRow, { backgroundColor: colors.surface }]} 
                 onPress={handleLogout}
@@ -493,6 +525,17 @@ export default function ProfileScreen() {
           </ScrollView>
         </SafeAreaView>
       </Animated.View>
+      
+      {/* Health Permission Modal */}
+      {showHealthPermissionModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.permissionModalContainer}>
+            <HealthPermissionRequest 
+              onComplete={() => setShowHealthPermissionModal(false)} 
+            />
+          </View>
+        </View>
+      )}
     </Layout>
   );
 }
@@ -500,6 +543,21 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  permissionModalContainer: {
+    width: '90%',
+    maxWidth: 400,
   },
   animatedContainer: {
     flex: 1,

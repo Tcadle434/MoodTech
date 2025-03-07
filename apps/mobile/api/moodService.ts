@@ -24,20 +24,22 @@ export const moodService = {
   },
 
   // Create or update a mood entry
-  saveMood: async (date: Date, mood: MoodType, note?: string) => {
+  saveMood: async (date: Date, mood: MoodType, note?: string, healthData?: { steps?: number, distance?: number, calories?: number }) => {
     const formattedDate = format(date, 'yyyy-MM-dd');
     return apiClient.post(apiConfig.MOODS.BASE, {
       date: formattedDate,
       mood,
       note,
+      healthData,
     });
   },
 
   // Update an existing mood entry
-  updateMood: async (id: string, mood: MoodType, note?: string) => {
+  updateMood: async (id: string, mood: MoodType, note?: string, healthData?: { steps?: number, distance?: number, calories?: number }) => {
     return apiClient.put(apiConfig.MOODS.BY_ID(id), {
       mood,
       note,
+      healthData,
     });
   },
 

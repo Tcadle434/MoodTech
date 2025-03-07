@@ -1,6 +1,12 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
 import { User } from '../users/user.entity';
 
+export interface HealthData {
+  steps?: number;
+  distance?: number;
+  calories?: number;
+}
+
 export enum MoodType {
   HAPPY = 'happy',
   NEUTRAL = 'neutral',
@@ -23,6 +29,9 @@ export class MoodEntry {
 
   @Column({ nullable: true })
   note: string;
+
+  @Column({ type: 'json', nullable: true })
+  healthData: HealthData;
 
   @ManyToOne(() => User, user => user.moodEntries)
   user: User;

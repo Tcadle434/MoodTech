@@ -6,11 +6,18 @@ export enum MoodType {
   SAD = 'sad',
 }
 
+export interface HealthData {
+  steps?: number;
+  distance?: number;
+  calories?: number;
+}
+
 export interface MoodEntry {
   id: string;
   date: string; // ISO date string
   mood: MoodType;
   note?: string;
+  healthData?: HealthData;
   createdAt: string; // ISO datetime string
   updatedAt: string; // ISO datetime string
 }

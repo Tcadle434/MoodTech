@@ -1,5 +1,20 @@
-import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
-import { MoodType } from '../mood-entry.entity';
+import { IsDateString, IsEnum, IsNotEmpty, IsOptional, IsString, IsObject, IsNumber, ValidateNested } from 'class-validator';
+import { MoodType, HealthData } from '../mood-entry.entity';
+import { Type } from 'class-transformer';
+
+export class HealthDataDto implements HealthData {
+  @IsNumber()
+  @IsOptional()
+  steps?: number;
+
+  @IsNumber()
+  @IsOptional()
+  distance?: number;
+
+  @IsNumber()
+  @IsOptional()
+  calories?: number;
+}
 
 export class CreateMoodDto {
   @IsDateString()
@@ -13,4 +28,9 @@ export class CreateMoodDto {
   @IsString()
   @IsOptional()
   note?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => HealthDataDto)
+  healthData?: HealthDataDto;
 }
