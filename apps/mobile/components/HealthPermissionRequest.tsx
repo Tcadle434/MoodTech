@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Platform } from "react-native";
-import { Button, Text, Icon, Card } from "@ui-kitten/components";
+import { Button, Text, Icon, Layout } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import useHealthStore from "@/store/healthStore";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface HealthPermissionRequestProps {
 	onComplete?: () => void;
@@ -13,7 +14,7 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 	const [isRequesting, setIsRequesting] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const scheme = useColorScheme();
-	const colors = Colors[scheme];
+	const colors = Colors[scheme ?? "light"];
 
 	const initializeHealthKit = useHealthStore((state) => state.initializeHealthKit);
 	const hasHealthPermissions = useHealthStore((state) => state.hasHealthPermissions);
@@ -24,53 +25,42 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 			return;
 		}
 
-		console.log("Starting health permissions request...");
 		setIsRequesting(true);
 		setError(null);
 
 		try {
-			console.log("Calling initializeHealthKit...");
 			await initializeHealthKit();
-			console.log("HealthKit initialized successfully");
-
 			if (onComplete) {
-				console.log("Calling onComplete callback");
 				onComplete();
 			}
 		} catch (err) {
-			console.error("Health permissions error:", err);
 			setError(err instanceof Error ? err.message : "Failed to request health permissions");
 		} finally {
 			setIsRequesting(false);
 		}
 	};
 
-	// If already has permissions and onComplete provided, call it
 	if (hasHealthPermissions && onComplete) {
 		onComplete();
 		return null;
 	}
 
-	if (Platform.OS !== "ios") {
-		return (
-			<Card style={[styles.card, { backgroundColor: colors.surface }]}>
-				<Text style={[styles.title, { color: colors.text }]}>iOS Only Feature</Text>
-				<Text style={[styles.description, { color: colors.textSecondary }]}>
-					Health data integration is only available on iOS devices.
-				</Text>
-			</Card>
-		);
-	}
-
 	return (
-		<Card style={[styles.card, { backgroundColor: colors.surface }]}>
-			<View style={styles.iconContainer}>
-				<Icon name="heart-outline" style={[styles.icon, { tintColor: colors.tint }]} />
-			</View>
+		<Layout style={[styles.container, { backgroundColor: colors.surface }]}>
+			<LinearGradient
+				colors={[colors.tertiary, colors.secondary]}
+				start={{ x: 0, y: 0 }}
+				end={{ x: 1, y: 1 }}
+				style={styles.iconContainer}
+			>
+				<Icon name="heart-outline" style={[styles.icon, { tintColor: "#FFFFFF" }]} />
+			</LinearGradient>
 
-			<Text style={[styles.title, { color: colors.text }]}>Connect Health Data</Text>
+			<Text category="h5" style={[styles.title, { color: colors.text }]}>
+				Connect Health Data
+			</Text>
 
-			<Text style={[styles.description, { color: colors.textSecondary }]}>
+			<Text category="p1" style={[styles.description, { color: colors.textSecondary }]}>
 				Allow MoodTech to read your health data like steps, distance, and calories to help
 				correlate your physical activity with your mood.
 			</Text>
@@ -85,6 +75,7 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 				style={styles.button}
 				onPress={handleRequestPermissions}
 				disabled={isRequesting}
+				size="large"
 			>
 				{isRequesting ? "REQUESTING..." : "CONNECT HEALTH DATA"}
 			</Button>
@@ -99,50 +90,54 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 					Maybe later
 				</Button>
 			)}
-		</Card>
+		</Layout>
 	);
 };
 
 const styles = StyleSheet.create({
-	card: {
-		borderRadius: 16,
+	container: {
 		padding: 24,
-		marginBottom: 16,
+		borderRadius: 24,
 		alignItems: "center",
+		width: "100%",
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 8 },
+		shadowOpacity: 0.15,
+		shadowRadius: 16,
+		elevation: 8,
 	},
 	iconContainer: {
-		width: 60,
-		height: 60,
-		borderRadius: 30,
-		backgroundColor: "rgba(86, 157, 226, 0.15)",
+		width: 64,
+		height: 64,
+		borderRadius: 32,
 		justifyContent: "center",
 		alignItems: "center",
-		marginBottom: 16,
+		marginBottom: 24,
 	},
 	icon: {
-		width: 30,
-		height: 30,
+		width: 32,
+		height: 32,
 	},
 	title: {
-		fontSize: 20,
-		fontWeight: "600",
+		marginBottom: 12,
 		textAlign: "center",
-		marginBottom: 8,
+		fontWeight: "600",
 	},
 	description: {
 		textAlign: "center",
 		marginBottom: 24,
-		lineHeight: 20,
+		lineHeight: 22,
+	},
+	errorText: {
+		marginBottom: 16,
+		textAlign: "center",
 	},
 	button: {
 		width: "100%",
-		marginBottom: 8,
+		borderRadius: 16,
+		marginBottom: 12,
 	},
 	skipButton: {
 		marginTop: 8,
-	},
-	errorText: {
-		textAlign: "center",
-		marginBottom: 16,
 	},
 });

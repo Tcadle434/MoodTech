@@ -1,4 +1,4 @@
-package com.moodtech.app
+package com.moodtech.app.dev
 
 import android.app.Application
 import android.content.res.Configuration

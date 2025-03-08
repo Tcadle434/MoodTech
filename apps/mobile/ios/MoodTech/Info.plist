@@ -28,7 +28,7 @@
         <key>CFBundleURLSchemes</key>
         <array>
           <string>moodtech</string>
-          <string>com.moodtech.app</string>
+          <string>com.moodtech.app.dev</string>
         </array>
       </dict>
       <dict>
@@ -51,10 +51,12 @@
       <key>NSAllowsLocalNetworking</key>
       <true/>
     </dict>
+    <key>NSHealthClinicalHealthRecordsShareUsageDescription</key>
+    <string>Allow MoodTech to access your clinical health records.</string>
     <key>NSHealthShareUsageDescription</key>
-    <string>This app requires access to your health data in order to correlate your physical activity with your mood.</string>
+    <string>Allow MoodTech to access your health data.</string>
     <key>NSHealthUpdateUsageDescription</key>
-    <string>This app requires access to your health data in order to correlate your physical activity with your mood.</string>
+    <string>Allow MoodTech to update your health data.</string>
     <key>NSUserActivityTypes</key>
     <array>
       <string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

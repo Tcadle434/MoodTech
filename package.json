@@ -8,6 +8,7 @@
 		"dev:with-db": "cd apps/backend && docker-compose up -d && cd ../.. && yarn dev",
 		"dev:backend": "yarn build:shared && turbo run dev --filter=backend",
 		"dev:ios:physical": "cd apps/mobile && npx expo run:ios --device 'iPhone (181)'",
+		"dev:ios:physical:health": "cd apps/mobile && yarn prepare-health-build && npx expo run:ios --device 'iPhone (181)'",
 		"lint": "turbo run lint",
 		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
 		"check-types": "turbo run check-types"

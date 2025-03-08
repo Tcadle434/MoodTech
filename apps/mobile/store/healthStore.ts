@@ -21,6 +21,8 @@ interface HealthState {
   initializeHealthKit: () => Promise<void>;
   fetchHealthData: (date: Date) => Promise<HealthData | null>;
   clearHealthData: () => void;
+  checkHealthPermissions: () => Promise<boolean>;
+  resetPermissionState: () => void;
 }
 
 const useHealthStore = create<HealthState>()(
@@ -36,22 +38,65 @@ const useHealthStore = create<HealthState>()(
         try {
           set({ isLoading: true, error: null });
           await healthService.initHealthKit();
+          
+          // Verify permissions were actually granted by checking
+          const hasPermissions = await healthService.checkPermissions();
+          
           set({ 
             isHealthKitInitialized: true, 
-            hasHealthPermissions: true,
+            hasHealthPermissions: hasPermissions,
             isLoading: false 
           });
+          
+          return hasPermissions;
         } catch (error) {
           set({ 
             isLoading: false, 
             error: error instanceof Error ? error.message : String(error),
             hasHealthPermissions: false
           });
+          return false;
         }
+      },
+      
+      // Check current permission status with HealthKit
+      checkHealthPermissions: async () => {
+        try {
+          set({ isLoading: true });
+          const hasPermissions = await healthService.checkPermissions();
+          
+          set({ 
+            hasHealthPermissions: hasPermissions,
+            isLoading: false
+          });
+          
+          return hasPermissions;
+        } catch (error) {
+          set({ 
+            isLoading: false,
+            hasHealthPermissions: false,
+            error: error instanceof Error ? error.message : String(error)
+          });
+          return false;
+        }
+      },
+      
+      // Reset permission state (used when permissions might have changed)
+      resetPermissionState: () => {
+        set({ 
+          hasHealthPermissions: false,
+          isHealthKitInitialized: false 
+        });
       },
       
       fetchHealthData: async (date: Date) => {
         try {
+          // First check if we still have permissions
+          const hasPermissions = await get().checkHealthPermissions();
+          if (!hasPermissions) {
+            throw new Error("Health permissions denied. Please enable in Settings.");
+          }
+          
           const dateKey = date.toISOString().split('T')[0];
           const existingData = get().healthData[dateKey];
           

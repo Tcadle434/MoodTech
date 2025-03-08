@@ -10,10 +10,14 @@
 		"newArchEnabled": true,
 		"ios": {
 			"supportsTablet": true,
-			"bundleIdentifier": "com.moodtech.app",
+			"bundleIdentifier": "com.moodtech.app.dev",
 			"infoPlist": {
-				"NSHealthShareUsageDescription": "This app requires access to your health data in order to correlate your physical activity with your mood.",
-				"NSHealthUpdateUsageDescription": "This app requires access to your health data in order to correlate your physical activity with your mood."
+				"NSHealthShareUsageDescription": "Allow MoodTech to access your health data.",
+				"NSHealthUpdateUsageDescription": "Allow MoodTech to update your health data."
+			},
+			"entitlements": {
+				"com.apple.developer.healthkit": true,
+				"com.apple.developer.healthkit.access": []
 			}
 		},
 		"android": {
@@ -21,7 +25,7 @@
 				"foregroundImage": "./assets/images/adaptive-icon.png",
 				"backgroundColor": "#ffffff"
 			},
-			"package": "com.moodtech.app"
+			"package": "com.moodtech.app.dev"
 		},
 		"web": {
 			"bundler": "metro",
@@ -30,6 +34,15 @@
 		},
 		"plugins": [
 			"expo-router",
+			[
+				"react-native-health",
+				{
+					"healthSharePermission": "Allow MoodTech to access your health data.",
+					"healthUpdatePermission": "Allow MoodTech to update your health data.",
+					"isClinicalDataEnabled": true,
+					"healthClinicalDescription": "Allow MoodTech to access your clinical health records."
+				}
+			],
 			[
 				"expo-splash-screen",
 				{

@@ -1,4 +1,4 @@
-package com.moodtech.app
+package com.moodtech.app.dev
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
