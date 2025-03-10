@@ -18,6 +18,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFocusEffect } from "@react-navigation/native";
+import useHealthData from "@/hooks/useHealthData";
 
 // Mood emoji mapping helper
 const MOOD_EMOJIS: Record<MoodType, string> = {
@@ -110,12 +111,17 @@ const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) =
 };
 
 export default function HomeScreen() {
+	const { steps, distance, flights, activitySummary, mindfulSession } = useHealthData();
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
 	const [note, setNote] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
+
+	console.log(`Steps: ${steps} | Distance: ${distance}m | Flights: ${flights}`);
+	console.log(`Activity Summary: ${JSON.stringify(activitySummary)}`);
+	console.log(`Mindful Session: ${JSON.stringify(mindfulSession)}`);
 
 	// State to track today's mood from the API
 	const [todayMoodEntry, setTodayMoodEntry] = useState<{ mood: MoodType; note?: string } | null>(
