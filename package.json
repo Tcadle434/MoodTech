@@ -1,26 +1,27 @@
 {
-  "name": "MoodTech",
-  "private": true,
-  "scripts": {
-    "build": "turbo run build",
-    "build:shared": "cd packages/shared && yarn build",
-    "dev": "yarn build:shared && turbo run dev --filter=mobile --filter=backend",
-    "dev:with-db": "cd apps/backend && docker-compose up -d && cd ../.. && yarn dev",
-    "lint": "turbo run lint",
-    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "check-types": "turbo run check-types"
-  },
-  "devDependencies": {
-    "prettier": "^3.5.3",
-    "turbo": "^2.4.4",
-    "typescript": "5.8.2"
-  },
-  "engines": {
-    "node": ">=18"
-  },
-  "packageManager": "yarn@1.22.21",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+	"name": "MoodTech",
+	"private": true,
+	"scripts": {
+		"build": "turbo run build",
+		"build:shared": "cd packages/shared && yarn build",
+		"dev": "yarn build:shared && turbo run dev --filter=mobile --filter=backend",
+		"dev:backend": "yarn build:shared && turbo run dev --filter=backend",
+		"dev:with-db": "cd apps/backend && docker-compose up -d && cd ../.. && yarn dev",
+		"lint": "turbo run lint",
+		"format": "prettier --write \"**/*.{ts,tsx,md}\"",
+		"check-types": "turbo run check-types"
+	},
+	"devDependencies": {
+		"prettier": "^3.5.3",
+		"turbo": "^2.4.4",
+		"typescript": "5.8.2"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"packageManager": "yarn@1.22.21",
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	]
 }

@@ -9,16 +9,27 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "extra": {
-      "apiUrl": "http://localhost:3000/api"
+      "apiUrl": "http://localhost:3000/api",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "7b8fd239-3b7d-4c4d-9bcf-92550df76438"
+      }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tcadle434.moodtech",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.tcadle434.moodtech"
     },
     "web": {
       "bundler": "metro",
