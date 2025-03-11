@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import useHealthStore from "@/store/healthStore";
 
 const useHealthData = (date?: Date) => {
@@ -12,7 +12,9 @@ const useHealthData = (date?: Date) => {
 		isLoading: storeLoading,
 	} = useHealthStore();
 
-	const dateKey = targetDate.toISOString().split("T")[0]; // Use just the date part as a dependency
+	// Use useMemo for the date key to prevent unnecessary recalculations
+	const dateKey = useMemo(() => targetDate.toISOString().split("T")[0], [targetDate]);
+
 	const cachedData = getHealthDataForDate(targetDate);
 	const [healthData, setHealthData] = useState(
 		cachedData || {

@@ -20,11 +20,15 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 	const initializeHealthKit = useHealthStore((state) => state.initializeHealthKit);
 	const hasHealthPermissions = useHealthStore((state) => state.hasHealthPermissions);
 
-	// Use useEffect to handle completion when permissions are granted
+	// Check if permissions are already granted on mount
 	useEffect(() => {
+		// If we already have permissions and haven't called onComplete yet
 		if (hasHealthPermissions && onComplete && !hasCalledComplete.current) {
 			hasCalledComplete.current = true;
-			onComplete();
+			// Use setTimeout to avoid state updates during render cycle
+			setTimeout(() => {
+				onComplete();
+			}, 0);
 		}
 	}, [hasHealthPermissions, onComplete]);
 
@@ -47,7 +51,7 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 		}
 	};
 
-	// Only return null if we have permissions, don't call onComplete here
+	// If permissions are already granted, don't render anything
 	if (hasHealthPermissions) {
 		return null;
 	}
@@ -91,7 +95,10 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 				<Button
 					appearance="ghost"
 					status="basic"
-					onPress={onComplete}
+					onPress={() => {
+						hasCalledComplete.current = true;
+						onComplete();
+					}}
 					style={styles.skipButton}
 				>
 					Maybe later

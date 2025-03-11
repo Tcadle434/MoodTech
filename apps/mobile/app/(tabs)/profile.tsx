@@ -8,6 +8,7 @@ import {
 	Animated,
 	StatusBar,
 	Modal,
+	Alert,
 } from "react-native";
 import { Layout, Text, Card, Avatar, Divider, Icon, Button, Spinner } from "@ui-kitten/components";
 import { useRouter } from "expo-router";
@@ -194,6 +195,14 @@ export default function ProfileScreen() {
 
 	const [healthModalVisible, setHealthModalVisible] = useState(false);
 	const hasHealthPermissions = useHealthStore((state) => state.hasHealthPermissions);
+
+	// Handle closing the health modal
+	const handleHealthModalClose = () => {
+		// Use setTimeout to avoid state updates during render cycle
+		setTimeout(() => {
+			setHealthModalVisible(false);
+		}, 0);
+	};
 
 	return (
 		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
@@ -569,7 +578,18 @@ export default function ProfileScreen() {
 
 							<TouchableOpacity
 								style={[styles.settingRow, { backgroundColor: colors.surface }]}
-								onPress={() => setHealthModalVisible(true)}
+								onPress={() => {
+									if (!hasHealthPermissions) {
+										setHealthModalVisible(true);
+									} else {
+										// Maybe show a different modal or alert for already connected health data
+										Alert.alert(
+											"Health Data Connected",
+											"Your Apple Health data is already connected to MoodTech.",
+											[{ text: "OK", style: "default" }]
+										);
+									}
+								}}
 							>
 								<Icon
 									name="heart-outline"
@@ -623,11 +643,11 @@ export default function ProfileScreen() {
 				visible={healthModalVisible}
 				animationType="fade"
 				transparent={true}
-				onRequestClose={() => setHealthModalVisible(false)}
+				onRequestClose={handleHealthModalClose}
 			>
 				<View style={styles.modalOverlay}>
 					<View style={styles.modalContainer}>
-						<HealthPermissionRequest onComplete={() => setHealthModalVisible(false)} />
+						<HealthPermissionRequest onComplete={handleHealthModalClose} />
 					</View>
 				</View>
 			</Modal>

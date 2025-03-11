@@ -87,6 +87,11 @@ const useHealthStore = create<HealthState>((set, get) => ({
 			return Promise.reject(new Error("HealthKit is only available on iOS"));
 		}
 
+		// If we already have permissions, resolve immediately
+		if (get().hasHealthPermissions) {
+			return Promise.resolve();
+		}
+
 		set({ isLoading: true, error: null });
 
 		return new Promise<void>((resolve, reject) => {
@@ -100,6 +105,7 @@ const useHealthStore = create<HealthState>((set, get) => ({
 						return;
 					}
 
+					// Just set permissions and resolve - don't pre-fetch data
 					set({ hasHealthPermissions: true, isLoading: false });
 					resolve();
 				});
@@ -115,7 +121,14 @@ const useHealthStore = create<HealthState>((set, get) => ({
 
 	fetchHealthData: async (date: Date) => {
 		const dateKey = format(date, "yyyy-MM-dd");
-		set((state) => ({ isLoading: true, error: null }));
+
+		// Check if we already have cached data for this date
+		const cachedData = get().healthDataCache[dateKey];
+		if (cachedData) {
+			return cachedData;
+		}
+
+		set({ isLoading: true, error: null });
 
 		if (!isIOS) {
 			set({ isLoading: false });
@@ -135,79 +148,61 @@ const useHealthStore = create<HealthState>((set, get) => ({
 		return new Promise<HealthData>((resolve) => {
 			const healthData: HealthData = { ...initialHealthData };
 			let completedQueries = 0;
-			let hasError = false;
 			const totalQueries = 5; // Number of health queries we're making
 
-			// Improved checkCompletion function with error handling
 			const checkCompletion = () => {
 				completedQueries++;
-				if (completedQueries === totalQueries || hasError) {
+				if (completedQueries === totalQueries) {
+					// Update cache and resolve
 					set((state) => ({
 						healthDataCache: {
 							...state.healthDataCache,
 							[dateKey]: healthData,
 						},
 						isLoading: false,
-						error: hasError ? "Error fetching some health data" : null,
 					}));
 					resolve(healthData);
 				}
 			};
 
-			const handleQueryError = (err: any, queryName: string) => {
-				console.error(`Error querying ${queryName}:`, err);
-				hasError = true;
-				checkCompletion();
-			};
-
 			try {
 				// Get step count
 				AppleHealthKit.getStepCount(options, (err: any, results: any) => {
-					if (err) {
-						handleQueryError(err, "steps");
-						return;
+					if (!err) {
+						healthData.steps = results.value;
 					}
-					healthData.steps = results.value;
 					checkCompletion();
 				});
 
 				// Get flights climbed
 				AppleHealthKit.getFlightsClimbed(options, (err: any, results: any) => {
-					if (err) {
-						handleQueryError(err, "flights");
-						return;
+					if (!err) {
+						healthData.flights = results.value;
 					}
-					healthData.flights = results.value;
 					checkCompletion();
 				});
 
 				// Get distance
 				AppleHealthKit.getDistanceWalkingRunning(options, (err: any, results: any) => {
-					if (err) {
-						handleQueryError(err, "distance");
-						return;
+					if (!err) {
+						healthData.distance = results.value;
 					}
-					healthData.distance = results.value;
 					checkCompletion();
 				});
 
 				// Get activity summary
 				AppleHealthKit.getActivitySummary(options, (err: any, results: any) => {
-					if (err) {
-						handleQueryError(err, "activity summary");
-						return;
+					if (!err) {
+						healthData.activitySummary = results;
 					}
-					healthData.activitySummary = results;
 					checkCompletion();
 				});
 
 				// Get mindful session
 				AppleHealthKit.getMindfulSession(options, (err: any, results: any) => {
-					if (err) {
-						handleQueryError(err, "mindful session");
-						return;
+					if (!err) {
+						healthData.mindfulSession = results;
 					}
-					healthData.mindfulSession = results;
 					checkCompletion();
 				});
 			} catch (error) {
