@@ -232,11 +232,18 @@ export default function CalendarScreen() {
 			return;
 		}
 
-		setSelectedDate(date);
+		console.log(`[Calendar] Day pressed: ${date.toLocaleDateString()}, DateKey: ${format(date, "yyyy-MM-dd")}`);
+		
+		// Create a NEW date object to avoid any reference issues
+		const selectedDate = new Date(date.getTime());
+		console.log(`[Calendar] Setting selectedDate: ${selectedDate.toLocaleDateString()}, is same as clicked date: ${selectedDate.getTime() === date.getTime()}`);
+		
+		setSelectedDate(selectedDate);
 
 		try {
 			// Fetch the latest data for this date
-			const moodEntry = await fetchMoodForDate(date);
+			const moodEntry = await fetchMoodForDate(selectedDate);
+			console.log(`[Calendar] Fetched mood for date: ${format(selectedDate, "yyyy-MM-dd")}, found: ${!!moodEntry}`);
 
 			if (moodEntry) {
 				setSelectedMood(moodEntry.mood);
@@ -442,7 +449,17 @@ export default function CalendarScreen() {
 											</LinearGradient>
 										</View>
 
-										{selectedDate && <HealthDataDisplay date={selectedDate} />}
+										{selectedDate && (
+  <>
+    <Text category="c1" style={{ color: colors.textSecondary, marginVertical: 8 }}>
+      Debug - Selected date: {format(selectedDate, "yyyy-MM-dd")}
+    </Text>
+    <HealthDataDisplay 
+      key={`health-data-${format(selectedDate, "yyyy-MM-dd")}`} 
+      date={new Date(selectedDate.getTime())} 
+    />
+  </>
+)}
 
 										<Button
 											style={styles.modalButton}

@@ -121,10 +121,12 @@ const useHealthStore = create<HealthState>((set, get) => ({
 
 	fetchHealthData: async (date: Date) => {
 		const dateKey = format(date, "yyyy-MM-dd");
+		console.log(`[healthStore] Fetching health data for date: ${dateKey}`);
 
 		// Check if we already have cached data for this date
 		const cachedData = get().healthDataCache[dateKey];
 		if (cachedData) {
+			console.log(`[healthStore] Using cached data for date: ${dateKey}`);
 			return cachedData;
 		}
 
@@ -140,10 +142,16 @@ const useHealthStore = create<HealthState>((set, get) => ({
 			return initialHealthData;
 		}
 
+		// Create proper date range for the EXACT day (midnight to midnight)
+		const dayStart = startOfDay(date);
+		const dayEnd = endOfDay(date);
+		
 		const options: HealthInputOptions = {
-			startDate: startOfDay(date).toISOString(),
-			endDate: endOfDay(date).toISOString(),
+			startDate: dayStart.toISOString(),
+			endDate: dayEnd.toISOString(),
 		};
+
+		console.log(`[healthStore] Query options: ${options.startDate} to ${options.endDate}`);
 
 		return new Promise<HealthData>((resolve) => {
 			const healthData: HealthData = { ...initialHealthData };
@@ -161,31 +169,58 @@ const useHealthStore = create<HealthState>((set, get) => ({
 						},
 						isLoading: false,
 					}));
+					console.log(`[healthStore] Completed all ${totalQueries} queries for ${dateKey}, steps: ${healthData.steps}`);
 					resolve(healthData);
 				}
 			};
 
 			try {
-				// Get step count
+				// Use the correct method to get the step count for a specific day
+				console.log(`[healthStore] Querying step count for ${dateKey}`);
+				
+				// Get step count for the day
 				AppleHealthKit.getStepCount(options, (err: any, results: any) => {
-					if (!err) {
-						healthData.steps = results.value;
+					if (!err && results && results.value) {
+						// Log the full result object
+						console.log(`[healthStore] Step count result:`, JSON.stringify(results));
+						
+						// The value is directly available in results.value
+						const stepCount = Number(results.value);
+						
+						if (!isNaN(stepCount)) {
+							console.log(`[healthStore] Step count for ${dateKey}: ${stepCount}`);
+							healthData.steps = stepCount;
+						} else {
+							console.log(`[healthStore] Invalid step count value:`, results.value);
+						}
+					} else {
+						console.log(`[healthStore] No step data for ${dateKey}:`, err || 'No results');
 					}
 					checkCompletion();
 				});
 
-				// Get flights climbed
+				// Get flights climbed 
 				AppleHealthKit.getFlightsClimbed(options, (err: any, results: any) => {
-					if (!err) {
-						healthData.flights = results.value;
+					if (!err && results && results.value) {
+						const flightCount = Number(results.value);
+						
+						if (!isNaN(flightCount)) {
+							console.log(`[healthStore] Flights for ${dateKey}: ${flightCount}`);
+							healthData.flights = flightCount;
+						}
 					}
 					checkCompletion();
 				});
 
 				// Get distance
 				AppleHealthKit.getDistanceWalkingRunning(options, (err: any, results: any) => {
-					if (!err) {
-						healthData.distance = results.value;
+					if (!err && results && results.value) {
+						const distance = Number(results.value);
+						
+						if (!isNaN(distance)) {
+							console.log(`[healthStore] Distance for ${dateKey}: ${distance}`);
+							healthData.distance = distance;
+						}
 					}
 					checkCompletion();
 				});
@@ -215,7 +250,9 @@ const useHealthStore = create<HealthState>((set, get) => ({
 
 	getHealthDataForDate: (date: Date) => {
 		const dateKey = format(date, "yyyy-MM-dd");
-		return get().healthDataCache[dateKey] || null;
+		const cachedData = get().healthDataCache[dateKey];
+		console.log(`[healthStore] Getting cached health data for ${dateKey}: ${cachedData ? `Found - steps: ${cachedData.steps}` : 'None found'}`);
+		return cachedData || null;
 	},
 }));
 
