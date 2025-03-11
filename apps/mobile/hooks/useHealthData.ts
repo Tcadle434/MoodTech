@@ -2,7 +2,11 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import useHealthStore from "@/store/healthStore";
 
 const useHealthData = (date?: Date) => {
-	const targetDate = date || new Date();
+	// Ensure we're working with a clone of the date to avoid any reference issues
+	const targetDate = useMemo(() => 
+		date ? new Date(date.getTime()) : new Date(),
+	[date]);
+	
 	const [isLoading, setIsLoading] = useState(false);
 
 	const {
@@ -13,18 +17,21 @@ const useHealthData = (date?: Date) => {
 	} = useHealthStore();
 
 	// Use useMemo for the date key to prevent unnecessary recalculations
-	const dateKey = useMemo(() => targetDate.toISOString().split("T")[0], [targetDate]);
+	const dateKey = useMemo(() => 
+		targetDate.toISOString().split("T")[0], 
+	[targetDate]);
 
-	const cachedData = getHealthDataForDate(targetDate);
-	const [healthData, setHealthData] = useState(
-		cachedData || {
-			steps: 0,
-			flights: 0,
-			distance: 0,
-			activitySummary: null,
-			mindfulSession: null,
-		}
-	);
+	// Define default health data
+	const defaultHealthData = {
+		steps: 0,
+		flights: 0,
+		distance: 0,
+		activitySummary: null,
+		mindfulSession: null,
+	};
+
+	// Initialize with defaults, will be updated in effect
+	const [healthData, setHealthData] = useState(defaultHealthData);
 
 	// Use useCallback to memoize the fetch function
 	const fetchData = useCallback(async () => {
@@ -41,18 +48,17 @@ const useHealthData = (date?: Date) => {
 		}
 	}, [targetDate, hasHealthPermissions, fetchHealthData]);
 
+	// Effect to load data when date changes
 	useEffect(() => {
-		// If we already have cached data, use it
-		if (cachedData) {
-			setHealthData(cachedData);
-			return;
-		}
-
-		// If we have permissions, fetch the data
-		if (hasHealthPermissions) {
+		// Get cached data for the specific date
+		const currentCachedData = getHealthDataForDate(targetDate);
+		
+		if (currentCachedData) {
+			setHealthData(currentCachedData);
+		} else if (hasHealthPermissions) {
 			fetchData();
 		}
-	}, [dateKey, hasHealthPermissions, cachedData, fetchData]);
+	}, [dateKey, hasHealthPermissions, fetchData, getHealthDataForDate]);
 
 	return {
 		...healthData,
