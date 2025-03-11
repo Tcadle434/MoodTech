@@ -19,6 +19,8 @@ import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFocusEffect } from "@react-navigation/native";
 import useHealthData from "@/hooks/useHealthData";
+import { HealthDataDisplay } from "@/components/HealthDataDisplay";
+import { Icon } from "@ui-kitten/components";
 
 // Mood emoji mapping helper
 const MOOD_EMOJIS: Record<MoodType, string> = {
@@ -111,17 +113,13 @@ const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) =
 };
 
 export default function HomeScreen() {
-	const { steps, distance, flights, activitySummary, mindfulSession } = useHealthData();
+	const { hasHealthPermissions } = useHealthData();
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
 	const [note, setNote] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
-
-	console.log(`Steps: ${steps} | Distance: ${distance}m | Flights: ${flights}`);
-	console.log(`Activity Summary: ${JSON.stringify(activitySummary)}`);
-	console.log(`Mindful Session: ${JSON.stringify(mindfulSession)}`);
 
 	// State to track today's mood from the API
 	const [todayMoodEntry, setTodayMoodEntry] = useState<{ mood: MoodType; note?: string } | null>(
@@ -352,6 +350,8 @@ export default function HomeScreen() {
 									</Text>
 								</View>
 
+								{hasHealthPermissions && <HealthDataDisplay date={new Date()} />}
+
 								<Input
 									multiline
 									textStyle={{ minHeight: 120, color: colors.text }}
@@ -520,6 +520,19 @@ const styles = StyleSheet.create({
 	},
 	selectedMoodText: {
 		fontSize: 16,
+	},
+	healthDataContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		padding: 12,
+		borderRadius: 12,
+		marginBottom: 16,
+		width: "100%",
+	},
+	healthIcon: {
+		width: 20,
+		height: 20,
+		marginRight: 8,
 	},
 	noteInput: {
 		width: "100%",

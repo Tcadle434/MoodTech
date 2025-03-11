@@ -18,14 +18,7 @@ import {
 	CalendarProps,
 	Spinner,
 } from "@ui-kitten/components";
-import {
-	format,
-	startOfMonth,
-	subDays,
-	isSameDay,
-	isFuture,
-	endOfMonth,
-} from "date-fns";
+import { format, startOfMonth, subDays, isSameDay, isFuture, endOfMonth } from "date-fns";
 import { MoodType } from "shared";
 import { useMoodStore } from "@/store/moodStore";
 import { Colors } from "@/constants/Colors";
@@ -33,6 +26,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useFocusEffect } from "@react-navigation/native";
+import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 
 // Interface for mood entries
 interface MoodEntry {
@@ -56,7 +50,7 @@ const MOOD_GRADIENTS = {
 	[MoodType.SAD]: ["#7B98A6", "#6C8490"], // Neutral, more subdued
 };
 
-// Get mood color 
+// Get mood color
 const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "light"): string => {
 	switch (mood) {
 		case MoodType.HAPPY:
@@ -73,10 +67,14 @@ const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "light"): 
 // Get mood name helper
 const getMoodName = (mood: MoodType): string => {
 	switch (mood) {
-		case MoodType.HAPPY: return "Happy";
-		case MoodType.NEUTRAL: return "Neutral";
-		case MoodType.SAD: return "Sad";
-		default: return "";
+		case MoodType.HAPPY:
+			return "Happy";
+		case MoodType.NEUTRAL:
+			return "Neutral";
+		case MoodType.SAD:
+			return "Sad";
+		default:
+			return "";
 	}
 };
 
@@ -129,9 +127,7 @@ const DayCell = (props: DayCellProps) => {
 						start={{ x: 0, y: 0 }}
 						end={{ x: 1, y: 1 }}
 					>
-						<Text
-							style={[style?.text, styles.moodDayText]}
-						>{`${date.getDate()}`}</Text>
+						<Text style={[style?.text, styles.moodDayText]}>{`${date.getDate()}`}</Text>
 					</LinearGradient>
 				</View>
 			) : (
@@ -283,9 +279,8 @@ export default function CalendarScreen() {
 				style={[
 					styles.moodButton,
 					{
-						borderColor: selectedMood === mood 
-							? getMoodColor(mood, scheme) 
-							: colors.subtle,
+						borderColor:
+							selectedMood === mood ? getMoodColor(mood, scheme) : colors.subtle,
 					},
 					selectedMood === mood && [
 						styles.selectedMoodButton,
@@ -424,7 +419,9 @@ export default function CalendarScreen() {
 											]}
 										>
 											<LinearGradient
-												colors={MOOD_GRADIENTS[selectedMood || MoodType.HAPPY]}
+												colors={
+													MOOD_GRADIENTS[selectedMood || MoodType.HAPPY]
+												}
 												style={styles.moodDetailGradient}
 												start={{ x: 0, y: 0 }}
 												end={{ x: 1, y: 1 }}
@@ -444,6 +441,8 @@ export default function CalendarScreen() {
 												) : null}
 											</LinearGradient>
 										</View>
+
+										{selectedDate && <HealthDataDisplay date={selectedDate} />}
 
 										<Button
 											style={styles.modalButton}
@@ -724,14 +723,12 @@ const styles = StyleSheet.create({
 		marginBottom: 16,
 	},
 	moodNote: {
-		fontStyle: "italic",
-		textAlign: "center",
 		color: "rgba(255, 255, 255, 0.9)",
-		lineHeight: 22,
+		fontStyle: "italic",
+		lineHeight: 20,
 	},
 	modalButton: {
+		marginTop: 8,
 		width: "100%",
-		borderRadius: 16,
-		height: 56,
 	},
 });
