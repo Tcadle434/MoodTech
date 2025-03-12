@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import React, { useEffect } from "react";
+import React from "react";
 import { Platform } from "react-native";
 import { Icon } from "@ui-kitten/components";
 
@@ -7,6 +7,8 @@ import { HapticTab } from "@/components/HapticTab";
 import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+
+//TODO: remove test tab
 
 export default function TabLayout() {
 	const colorScheme = useColorScheme();
