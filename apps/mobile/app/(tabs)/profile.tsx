@@ -1,23 +1,18 @@
 import React, { useRef, useEffect, useState } from "react";
-import {
-	StyleSheet,
-	View,
-	ScrollView,
-	SafeAreaView,
-	TouchableOpacity,
-	Animated,
-	StatusBar,
-	Alert,
-} from "react-native";
-import { Layout, Text, Avatar, Divider, Icon, Spinner } from "@ui-kitten/components";
+import { StyleSheet, ScrollView, SafeAreaView, Animated, StatusBar } from "react-native";
+import { Layout } from "@ui-kitten/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { LinearGradient } from "expo-linear-gradient";
 import { useMoodStore } from "@/store/moodStore";
-import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 import { MoodType } from "shared";
 import { format, parseISO } from "date-fns";
+import { useRouter } from "expo-router";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { UserInfo } from "@/components/profile/UserInfo";
+import { StatsGrid } from "@/components/profile/StatsGrid";
+import { BadgesGrid } from "@/components/profile/BadgesGrid";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 interface MoodEntry {
 	date: string;
@@ -30,6 +25,7 @@ interface MonthEntries {
 
 export default function ProfileScreen() {
 	const { logout, user } = useAuth();
+	const router = useRouter();
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
 	const [isLoading, setIsLoading] = useState(true);
@@ -52,8 +48,6 @@ export default function ProfileScreen() {
 	// Get mood data from store
 	const fetchAllEntries = useMoodStore((state) => state.fetchAllEntries);
 	const entries = useMoodStore((state) => state.entries);
-
-	const isHealthKitInitialized = useHealthKitInit();
 
 	// Check if there's a streak of consecutive days
 	const checkForStreak = (entries: MoodEntry[], requiredDays: number): boolean => {
@@ -129,7 +123,6 @@ export default function ProfileScreen() {
 		const loadMoodData = async () => {
 			setIsLoading(true);
 			try {
-				// Fetch all mood entries
 				await fetchAllEntries();
 			} catch (error) {
 				console.error("Error fetching mood data:", error);
@@ -190,7 +183,10 @@ export default function ProfileScreen() {
 
 	const handleLogout = async () => {
 		await logout();
-		// The AuthContext will handle navigation
+	};
+
+	const handleSettingsPress = () => {
+		router.push("/settings");
 	};
 
 	// Gradient colors for stat cards
@@ -210,434 +206,33 @@ export default function ProfileScreen() {
 				]}
 			>
 				<SafeAreaView style={styles.safeArea}>
-					<View style={styles.header}>
-						<Text category="h1" style={[styles.headerTitle, { color: colors.text }]}>
-							Profile
-						</Text>
-						<TouchableOpacity style={styles.settingsButton}>
-							<Icon
-								name="settings-outline"
-								style={[styles.settingsIcon, { tintColor: colors.text }]}
-							/>
-						</TouchableOpacity>
-					</View>
+					<ProfileHeader title="Profile" onSettingsPress={handleSettingsPress} />
 
 					<ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-						<View style={styles.profileSection}>
-							<Avatar
-								style={styles.avatar}
-								size="giant"
-								source={require("@/assets/images/icon.png")}
-							/>
-							<Text category="h5" style={[styles.userName, { color: colors.text }]}>
-								{user?.name || "User"}
-							</Text>
-							<Text
-								category="s1"
-								style={[styles.userEmail, { color: colors.textSecondary }]}
-							>
-								{user?.email || "No email available"}
-							</Text>
-						</View>
+						<UserInfo
+							name={user?.name || null}
+							email={user?.email || null}
+							avatarUrl={null}
+						/>
 
 						{isLoading ? (
-							<View style={styles.loadingContainer}>
-								<Spinner size="large" status="primary" />
-								<Text
-									category="s1"
-									style={[styles.loadingText, { color: colors.textSecondary }]}
-								>
-									Loading your stats...
-								</Text>
-							</View>
+							<LoadingSpinner message="Loading your stats..." />
 						) : (
 							<>
-								<View style={styles.statsSection}>
-									<Text
-										category="h6"
-										style={[styles.sectionTitle, { color: colors.text }]}
-									>
-										Your Stats
-									</Text>
-									<View style={styles.statsRow}>
-										<View
-											style={[
-												styles.statCardContainer,
-												{ shadowColor: colors.text },
-											]}
-										>
-											<LinearGradient
-												colors={statGradients.days}
-												start={{ x: 0, y: 0 }}
-												end={{ x: 1, y: 1 }}
-												style={styles.statCard}
-											>
-												<Text category="h3" style={styles.statNumber}>
-													{totalDays}
-												</Text>
-												<Text category="c1" style={styles.statLabel}>
-													Days tracked
-												</Text>
-											</LinearGradient>
-										</View>
+								<StatsGrid
+									totalDays={totalDays}
+									happyDays={happyDays}
+									happyPercentage={happyPercentage}
+								/>
 
-										<View
-											style={[
-												styles.statCardContainer,
-												{ shadowColor: colors.text },
-											]}
-										>
-											<LinearGradient
-												colors={statGradients.happy}
-												start={{ x: 0, y: 0 }}
-												end={{ x: 1, y: 1 }}
-												style={styles.statCard}
-											>
-												<Text category="h3" style={styles.statNumber}>
-													{happyDays}
-												</Text>
-												<Text category="c1" style={styles.statLabel}>
-													Happy days
-												</Text>
-											</LinearGradient>
-										</View>
-
-										<View
-											style={[
-												styles.statCardContainer,
-												{ shadowColor: colors.text },
-											]}
-										>
-											<LinearGradient
-												colors={statGradients.positivity}
-												start={{ x: 0, y: 0 }}
-												end={{ x: 1, y: 1 }}
-												style={styles.statCard}
-											>
-												<Text category="h3" style={styles.statNumber}>
-													{happyPercentage}%
-												</Text>
-												<Text category="c1" style={styles.statLabel}>
-													Happy days
-												</Text>
-											</LinearGradient>
-										</View>
-									</View>
-								</View>
-
-								<View style={styles.badgesSection}>
-									<Text
-										category="h6"
-										style={[styles.sectionTitle, { color: colors.text }]}
-									>
-										Badges
-									</Text>
-									<View style={styles.badgesRow}>
-										{/* First mood badge - always unlocked if user has at least one entry */}
-										<View
-											style={[
-												styles.badge,
-												!hasFirstMood && styles.lockedBadge,
-											]}
-										>
-											<View
-												style={[
-													styles.badgeIcon,
-													{
-														backgroundColor: hasFirstMood
-															? colors.tertiary
-															: colors.subtle,
-													},
-												]}
-											>
-												<Icon
-													name={
-														hasFirstMood
-															? "checkmark-outline"
-															: "lock-outline"
-													}
-													style={styles.badgeIconInner}
-												/>
-											</View>
-											<Text
-												category="c1"
-												style={[
-													styles.badgeText,
-													{
-														color: hasFirstMood
-															? colors.text
-															: colors.textSecondary,
-													},
-												]}
-											>
-												First mood
-											</Text>
-										</View>
-
-										{/* 7-day streak badge */}
-										<View
-											style={[
-												styles.badge,
-												!has7DayStreak && styles.lockedBadge,
-											]}
-										>
-											<View
-												style={[
-													styles.badgeIcon,
-													{
-														backgroundColor: has7DayStreak
-															? colors.tint
-															: colors.subtle,
-													},
-												]}
-											>
-												<Icon
-													name={
-														has7DayStreak
-															? "calendar-outline"
-															: "lock-outline"
-													}
-													style={styles.badgeIconInner}
-												/>
-											</View>
-											<Text
-												category="c1"
-												style={[
-													styles.badgeText,
-													{
-														color: has7DayStreak
-															? colors.text
-															: colors.textSecondary,
-													},
-												]}
-											>
-												7 day streak
-											</Text>
-										</View>
-
-										{/* 30-day streak badge */}
-										<View
-											style={[
-												styles.badge,
-												!has30DayStreak && styles.lockedBadge,
-											]}
-										>
-											<View
-												style={[
-													styles.badgeIcon,
-													{
-														backgroundColor: has30DayStreak
-															? colors.secondary
-															: colors.subtle,
-													},
-												]}
-											>
-												<Icon
-													name={
-														has30DayStreak
-															? "award-outline"
-															: "lock-outline"
-													}
-													style={styles.badgeIconInner}
-												/>
-											</View>
-											<Text
-												category="c1"
-												style={[
-													styles.badgeText,
-													{
-														color: has30DayStreak
-															? colors.text
-															: colors.textSecondary,
-													},
-												]}
-											>
-												30 day streak
-											</Text>
-										</View>
-
-										{/* Happy month badge */}
-										<View
-											style={[
-												styles.badge,
-												!hasHappyMonth && styles.lockedBadge,
-											]}
-										>
-											<View
-												style={[
-													styles.badgeIcon,
-													{
-														backgroundColor: hasHappyMonth
-															? "#FFA726"
-															: colors.subtle,
-													},
-												]}
-											>
-												<Icon
-													name={
-														hasHappyMonth
-															? "sun-outline"
-															: "lock-outline"
-													}
-													style={styles.badgeIconInner}
-												/>
-											</View>
-											<Text
-												category="c1"
-												style={[
-													styles.badgeText,
-													{
-														color: hasHappyMonth
-															? colors.text
-															: colors.textSecondary,
-													},
-												]}
-											>
-												Happy month
-											</Text>
-										</View>
-									</View>
-								</View>
+								<BadgesGrid
+									hasFirstMood={hasFirstMood}
+									has7DayStreak={has7DayStreak}
+									has30DayStreak={has30DayStreak}
+									hasHappyMonth={hasHappyMonth}
+								/>
 							</>
 						)}
-
-						<View style={styles.settingsSection}>
-							<Text
-								category="h6"
-								style={[styles.sectionTitle, { color: colors.text }]}
-							>
-								Settings
-							</Text>
-
-							<TouchableOpacity
-								style={[styles.settingRow, { backgroundColor: colors.surface }]}
-							>
-								<Icon
-									name="person-outline"
-									style={[styles.settingIcon, { tintColor: colors.text }]}
-								/>
-								<Text style={[styles.settingText, { color: colors.text }]}>
-									Edit Profile
-								</Text>
-								<Icon
-									name="chevron-right-outline"
-									style={[
-										styles.chevronIcon,
-										{ tintColor: colors.textSecondary },
-									]}
-								/>
-							</TouchableOpacity>
-
-							<Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
-
-							<TouchableOpacity
-								style={[styles.settingRow, { backgroundColor: colors.surface }]}
-							>
-								<Icon
-									name="bell-outline"
-									style={[styles.settingIcon, { tintColor: colors.text }]}
-								/>
-								<Text style={[styles.settingText, { color: colors.text }]}>
-									Notifications
-								</Text>
-								<Icon
-									name="chevron-right-outline"
-									style={[
-										styles.chevronIcon,
-										{ tintColor: colors.textSecondary },
-									]}
-								/>
-							</TouchableOpacity>
-
-							<Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
-
-							<TouchableOpacity
-								style={[styles.settingRow, { backgroundColor: colors.surface }]}
-							>
-								<Icon
-									name="shield-outline"
-									style={[styles.settingIcon, { tintColor: colors.text }]}
-								/>
-								<Text style={[styles.settingText, { color: colors.text }]}>
-									Privacy
-								</Text>
-								<Icon
-									name="chevron-right-outline"
-									style={[
-										styles.chevronIcon,
-										{ tintColor: colors.textSecondary },
-									]}
-								/>
-							</TouchableOpacity>
-
-							<Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
-
-							<TouchableOpacity
-								style={[styles.settingRow, { backgroundColor: colors.surface }]}
-								onPress={() => {
-									Alert.alert(
-										isHealthKitInitialized
-											? "Health Data Connected"
-											: "Health Data Not Connected",
-										isHealthKitInitialized
-											? "Your Apple Health data is connected to MoodTech. Your steps and other health metrics will be shown alongside your mood entries."
-											: "Health data integration is managed automatically. The app will prompt you for permissions when needed.",
-										[{ text: "OK", style: "default" }]
-									);
-								}}
-							>
-								<Icon
-									name="heart-outline"
-									style={[styles.settingIcon, { tintColor: colors.text }]}
-								/>
-								<Text style={[styles.settingText, { color: colors.text }]}>
-									Health Data
-								</Text>
-								<View style={styles.settingRightContent}>
-									{isHealthKitInitialized ? (
-										<View
-											style={[
-												styles.connectedBadge,
-												{ backgroundColor: "#84B59F" },
-											]}
-										>
-											<Text style={styles.connectedText}>Connected</Text>
-										</View>
-									) : (
-										<View
-											style={[
-												styles.connectedBadge,
-												{ backgroundColor: colors.subtle },
-											]}
-										>
-											<Text
-												style={[
-													styles.connectedText,
-													{ color: colors.textSecondary },
-												]}
-											>
-												Not Connected
-											</Text>
-										</View>
-									)}
-								</View>
-							</TouchableOpacity>
-
-							<Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
-
-							<TouchableOpacity
-								style={[styles.settingRow, { backgroundColor: colors.surface }]}
-								onPress={handleLogout}
-							>
-								<Icon
-									name="log-out-outline"
-									style={[styles.settingIcon, { tintColor: "#F9695E" }]}
-								/>
-								<Text style={[styles.settingText, { color: "#F9695E" }]}>
-									Logout
-								</Text>
-							</TouchableOpacity>
-						</View>
 					</ScrollView>
 				</SafeAreaView>
 			</Animated.View>
@@ -655,175 +250,7 @@ const styles = StyleSheet.create({
 	safeArea: {
 		flex: 1,
 	},
-	header: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-		alignItems: "center",
-		padding: 24,
-		paddingTop: 60,
-	},
-	headerTitle: {
-		fontSize: 34,
-		fontWeight: "700",
-	},
-	settingsButton: {
-		width: 40,
-		height: 40,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	settingsIcon: {
-		width: 24,
-		height: 24,
-	},
 	scrollView: {
 		flex: 1,
-	},
-	profileSection: {
-		alignItems: "center",
-		paddingVertical: 20,
-	},
-	avatar: {
-		width: 100,
-		height: 100,
-		marginBottom: 16,
-	},
-	userName: {
-		marginBottom: 4,
-		fontWeight: "600",
-	},
-	userEmail: {
-		opacity: 0.7,
-	},
-	statsSection: {
-		padding: 24,
-	},
-	sectionTitle: {
-		marginBottom: 20,
-		fontSize: 20,
-		fontWeight: "600",
-	},
-	statsRow: {
-		flexDirection: "row",
-		justifyContent: "space-between",
-	},
-	statCardContainer: {
-		flex: 1,
-		margin: 6,
-		borderRadius: 20,
-		overflow: "hidden",
-		shadowOffset: { width: 0, height: 4 },
-		shadowOpacity: 0.15,
-		shadowRadius: 8,
-		elevation: 4,
-	},
-	statCard: {
-		alignItems: "center",
-		padding: 16,
-		borderRadius: 20,
-	},
-	statNumber: {
-		marginBottom: 5,
-		fontSize: 30,
-		fontWeight: "700",
-		color: "#FFFFFF",
-	},
-	statLabel: {
-		fontSize: 14,
-		color: "rgba(255, 255, 255, 0.9)",
-		fontWeight: "500",
-	},
-	loadingContainer: {
-		alignItems: "center",
-		justifyContent: "center",
-		padding: 40,
-		minHeight: 200,
-	},
-	loadingText: {
-		marginTop: 16,
-		textAlign: "center",
-	},
-	badgesSection: {
-		padding: 24,
-		paddingTop: 10,
-	},
-	badgesRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
-		marginHorizontal: -5,
-	},
-	badge: {
-		width: "25%",
-		alignItems: "center",
-		padding: 8,
-	},
-	lockedBadge: {
-		opacity: 0.5,
-	},
-	badgeIcon: {
-		width: 50,
-		height: 50,
-		borderRadius: 25,
-		justifyContent: "center",
-		alignItems: "center",
-		marginBottom: 8,
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.15,
-		shadowRadius: 4,
-		elevation: 3,
-	},
-	badgeIconInner: {
-		width: 24,
-		height: 24,
-		tintColor: "white",
-	},
-	badgeText: {
-		textAlign: "center",
-		fontSize: 12,
-	},
-	settingsSection: {
-		padding: 24,
-		paddingTop: 10,
-		paddingBottom: 40,
-	},
-	settingRow: {
-		flexDirection: "row",
-		alignItems: "center",
-		paddingVertical: 16,
-		paddingHorizontal: 16,
-		borderRadius: 16,
-		marginBottom: 8,
-	},
-	settingIcon: {
-		width: 22,
-		height: 22,
-		marginRight: 16,
-	},
-	settingText: {
-		flex: 1,
-		fontSize: 16,
-	},
-	chevronIcon: {
-		width: 18,
-		height: 18,
-	},
-	divider: {
-		height: 1,
-		marginVertical: 4,
-	},
-	settingRightContent: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	connectedBadge: {
-		paddingHorizontal: 8,
-		paddingVertical: 4,
-		borderRadius: 12,
-		marginRight: 8,
-	},
-	connectedText: {
-		color: "#FFFFFF",
-		fontSize: 12,
-		fontWeight: "600",
 	},
 });

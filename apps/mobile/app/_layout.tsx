@@ -10,6 +10,7 @@ import * as eva from "@eva-design/eva";
 import { ApplicationProvider, IconRegistry, Layout, Spinner, Text } from "@ui-kitten/components";
 import { EvaIconsPack } from "@ui-kitten/eva-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { themes } from "@/theme/theme";
@@ -86,8 +87,10 @@ export default function RootLayout() {
 				<QueryClientProvider client={queryClient}>
 					<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
 						<AuthProvider>
-							<RootLayoutContent />
-							<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+							<GestureHandlerRootView style={{ flex: 1 }}>
+								<RootLayoutContent />
+								<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+							</GestureHandlerRootView>
 						</AuthProvider>
 					</ThemeProvider>
 				</QueryClientProvider>
