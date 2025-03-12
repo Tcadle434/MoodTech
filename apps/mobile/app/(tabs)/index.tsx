@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
 import React, { useState, useRef, useEffect } from "react";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { MoodType } from "shared";
 import { useMoodStore } from "@/store/moodStore";
 import { Colors } from "@/constants/Colors";
@@ -18,9 +18,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFocusEffect } from "@react-navigation/native";
-import useHealthData from "@/hooks/useHealthData";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
-import { Icon } from "@ui-kitten/components";
+import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 
 // Mood emoji mapping helper
 const MOOD_EMOJIS: Record<MoodType, string> = {
@@ -113,7 +112,7 @@ const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) =
 };
 
 export default function HomeScreen() {
-	const { hasHealthPermissions } = useHealthData();
+	const isInitialized = useHealthKitInit();
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
 	const [note, setNote] = useState("");
@@ -193,7 +192,7 @@ export default function HomeScreen() {
 
 	// Function to determine if we have a valid mood to show
 	const hasValidMoodToday = () => {
-		return todayMoodEntry?.mood != null;
+		return todayMoodEntry !== null;
 	};
 
 	const today = format(new Date(), "EEEE, MMMM d");
@@ -350,7 +349,7 @@ export default function HomeScreen() {
 									</Text>
 								</View>
 
-								{hasHealthPermissions && <HealthDataDisplay date={new Date()} />}
+								{isInitialized && <HealthDataDisplay date={new Date()} />}
 
 								<Input
 									multiline

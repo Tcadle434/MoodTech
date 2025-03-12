@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
-import { StyleSheet, View, Platform } from "react-native";
+import React from "react";
+import { StyleSheet, Platform } from "react-native";
 import { Button, Text, Icon, Layout } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import useHealthStore from "@/store/healthStore";
+import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 import { LinearGradient } from "expo-linear-gradient";
 
 interface HealthPermissionRequestProps {
@@ -11,49 +11,24 @@ interface HealthPermissionRequestProps {
 }
 
 export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = ({ onComplete }) => {
-	const [isRequesting, setIsRequesting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
 	const scheme = useColorScheme();
+	const isInitialized = useHealthKitInit();
+
 	const colors = Colors[scheme ?? "light"];
-	const hasCalledComplete = useRef(false);
 
-	const initializeHealthKit = useHealthStore((state) => state.initializeHealthKit);
-	const hasHealthPermissions = useHealthStore((state) => state.hasHealthPermissions);
-
-	// Check if permissions are already granted on mount
-	useEffect(() => {
-		// If we already have permissions and haven't called onComplete yet
-		if (hasHealthPermissions && onComplete && !hasCalledComplete.current) {
-			hasCalledComplete.current = true;
-			// Use setTimeout to avoid state updates during render cycle
-			setTimeout(() => {
-				onComplete();
-			}, 0);
-		}
-	}, [hasHealthPermissions, onComplete]);
-
-	const handleRequestPermissions = async () => {
-		if (Platform.OS !== "ios") {
-			setError("Health data integration is only available on iOS devices.");
-			return;
-		}
-
-		setIsRequesting(true);
-		setError(null);
-
-		try {
-			await initializeHealthKit();
-			// Don't call onComplete here, let the useEffect handle it
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to request health permissions");
-		} finally {
-			setIsRequesting(false);
-		}
-	};
-
-	// If permissions are already granted, don't render anything
-	if (hasHealthPermissions) {
+	if (isInitialized) {
+		onComplete?.();
 		return null;
+	}
+
+	if (Platform.OS !== "ios") {
+		return (
+			<Layout style={[styles.container, { backgroundColor: colors.surface }]}>
+				<Text style={styles.errorText} status="danger">
+					Health data integration is only available on iOS devices.
+				</Text>
+			</Layout>
+		);
 	}
 
 	return (
@@ -76,29 +51,11 @@ export const HealthPermissionRequest: React.FC<HealthPermissionRequestProps> = (
 				correlate your physical activity with your mood.
 			</Text>
 
-			{error && (
-				<Text style={styles.errorText} status="danger">
-					{error}
-				</Text>
-			)}
-
-			<Button
-				style={styles.button}
-				onPress={handleRequestPermissions}
-				disabled={isRequesting}
-				size="large"
-			>
-				{isRequesting ? "REQUESTING..." : "CONNECT HEALTH DATA"}
-			</Button>
-
 			{onComplete && (
 				<Button
 					appearance="ghost"
 					status="basic"
-					onPress={() => {
-						hasCalledComplete.current = true;
-						onComplete();
-					}}
+					onPress={onComplete}
 					style={styles.skipButton}
 				>
 					Maybe later
@@ -145,11 +102,6 @@ const styles = StyleSheet.create({
 	errorText: {
 		marginBottom: 16,
 		textAlign: "center",
-	},
-	button: {
-		width: "100%",
-		borderRadius: 16,
-		marginBottom: 12,
 	},
 	skipButton: {
 		marginTop: 8,

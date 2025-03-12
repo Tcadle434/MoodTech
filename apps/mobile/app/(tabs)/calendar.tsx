@@ -8,6 +8,9 @@ import {
 	ScrollView,
 	Animated,
 	StatusBar,
+	ViewStyle,
+	TextStyle,
+	StyleProp,
 } from "react-native";
 import {
 	Layout,
@@ -44,7 +47,7 @@ const MOOD_EMOJIS = {
 };
 
 // Mood gradients mapping
-const MOOD_GRADIENTS = {
+const MOOD_GRADIENTS: Record<MoodType, [string, string]> = {
 	[MoodType.HAPPY]: ["#84B59F", "#6B9681"], // Success/tertiary colors
 	[MoodType.NEUTRAL]: ["#5B9AA9", "#4A7F8C"], // Primary color
 	[MoodType.SAD]: ["#7B98A6", "#6C8490"], // Neutral, more subdued
@@ -78,15 +81,21 @@ const getMoodName = (mood: MoodType): string => {
 	}
 };
 
-// This will highlight dates with mood data in the calendar
-type DayCellProps = CalendarProps<Date> & {
+// Interface for calendar day cell props
+interface DayCellProps {
+	date: Date | undefined;
+	style?: {
+		container?: StyleProp<ViewStyle>;
+		text?: StyleProp<TextStyle>;
+	};
 	moodEntries: MoodEntry[];
-};
+	onSelect?: (date: Date) => void;
+}
 
 const DayCell = (props: DayCellProps) => {
-	const { date, style = {}, moodEntries, ...cellProps } = props;
+	const { date, style, moodEntries, ...cellProps } = props;
 	const scheme = useColorScheme();
-	const colors = Colors[scheme];
+	const colors = Colors[scheme ?? "light"];
 
 	if (!date) return null;
 
@@ -142,6 +151,12 @@ const DayCell = (props: DayCellProps) => {
 	);
 };
 
+const CalendarDayCell = (props: CalendarProps & { moodEntries: MoodEntry[] }) => {
+	const { date, style, moodEntries, onSelect } = props;
+	const cellStyle = style ? { container: style } : undefined;
+	return <DayCell date={date} style={cellStyle} moodEntries={moodEntries} onSelect={onSelect} />;
+};
+
 export default function CalendarScreen() {
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
@@ -155,7 +170,7 @@ export default function CalendarScreen() {
 	const [calendarKey, setCalendarKey] = useState(0);
 
 	const scheme = useColorScheme();
-	const colors = Colors[scheme];
+	const colors = Colors[scheme ?? "light"];
 
 	const { entries, refreshTrigger, fetchEntriesForDateRange } = useMoodStore();
 	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
@@ -232,18 +247,24 @@ export default function CalendarScreen() {
 			return;
 		}
 
-		console.log(`[Calendar] Day pressed: ${date.toLocaleDateString()}, DateKey: ${format(date, "yyyy-MM-dd")}`);
-		
+		console.log(
+			`[Calendar] Day pressed: ${date.toLocaleDateString()}, DateKey: ${format(date, "yyyy-MM-dd")}`
+		);
+
 		// Create a NEW date object to avoid any reference issues
 		const selectedDate = new Date(date.getTime());
-		console.log(`[Calendar] Setting selectedDate: ${selectedDate.toLocaleDateString()}, is same as clicked date: ${selectedDate.getTime() === date.getTime()}`);
-		
+		console.log(
+			`[Calendar] Setting selectedDate: ${selectedDate.toLocaleDateString()}, is same as clicked date: ${selectedDate.getTime() === date.getTime()}`
+		);
+
 		setSelectedDate(selectedDate);
 
 		try {
 			// Fetch the latest data for this date
 			const moodEntry = await fetchMoodForDate(selectedDate);
-			console.log(`[Calendar] Fetched mood for date: ${format(selectedDate, "yyyy-MM-dd")}, found: ${!!moodEntry}`);
+			console.log(
+				`[Calendar] Fetched mood for date: ${format(selectedDate, "yyyy-MM-dd")}, found: ${!!moodEntry}`
+			);
 
 			if (moodEntry) {
 				setSelectedMood(moodEntry.mood);
@@ -280,6 +301,7 @@ export default function CalendarScreen() {
 
 	// Render mood selection buttons in the modal
 	const renderMoodButtons = () => {
+		const currentScheme = scheme ?? "light";
 		return Object.values(MoodType).map((mood) => (
 			<TouchableOpacity
 				key={mood}
@@ -287,12 +309,14 @@ export default function CalendarScreen() {
 					styles.moodButton,
 					{
 						borderColor:
-							selectedMood === mood ? getMoodColor(mood, scheme) : colors.subtle,
+							selectedMood === mood
+								? getMoodColor(mood, currentScheme)
+								: colors.subtle,
 					},
 					selectedMood === mood && [
 						styles.selectedMoodButton,
 						{
-							backgroundColor: `${getMoodColor(mood, scheme)}20`,
+							backgroundColor: `${getMoodColor(mood, currentScheme)}20`,
 						},
 					],
 				]}
@@ -322,7 +346,9 @@ export default function CalendarScreen() {
 
 	return (
 		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
-			<StatusBar barStyle={scheme === "dark" ? "light-content" : "dark-content"} />
+			<StatusBar
+				barStyle={(scheme ?? "light") === "dark" ? "light-content" : "dark-content"}
+			/>
 			<Animated.View
 				style={[
 					styles.animatedContainer,
@@ -372,7 +398,7 @@ export default function CalendarScreen() {
 									date={currentMonth}
 									onSelect={handleDayPress}
 									renderDay={(props) => (
-										<DayCell {...props} moodEntries={entries} />
+										<CalendarDayCell {...props} moodEntries={entries} />
 									)}
 									onVisibleDateChange={setCurrentMonth}
 								/>
@@ -392,7 +418,7 @@ export default function CalendarScreen() {
 					>
 						<BlurView
 							intensity={30}
-							tint={scheme === "dark" ? "dark" : "light"}
+							tint={(scheme ?? "light") === "dark" ? "dark" : "light"}
 							style={styles.modalOverlay}
 						>
 							<View
@@ -450,16 +476,10 @@ export default function CalendarScreen() {
 										</View>
 
 										{selectedDate && (
-  <>
-    <Text category="c1" style={{ color: colors.textSecondary, marginVertical: 8 }}>
-      Debug - Selected date: {format(selectedDate, "yyyy-MM-dd")}
-    </Text>
-    <HealthDataDisplay 
-      key={`health-data-${format(selectedDate, "yyyy-MM-dd")}`} 
-      date={new Date(selectedDate.getTime())} 
-    />
-  </>
-)}
+											<HealthDataDisplay
+												date={new Date(selectedDate.getTime())}
+											/>
+										)}
 
 										<Button
 											style={styles.modalButton}

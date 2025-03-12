@@ -7,26 +7,31 @@ import {
 	TouchableOpacity,
 	Animated,
 	StatusBar,
-	Modal,
 	Alert,
 } from "react-native";
-import { Layout, Text, Card, Avatar, Divider, Icon, Button, Spinner } from "@ui-kitten/components";
-import { useRouter } from "expo-router";
+import { Layout, Text, Avatar, Divider, Icon, Spinner } from "@ui-kitten/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMoodStore } from "@/store/moodStore";
-import useHealthStore from "@/store/healthStore";
-import { HealthPermissionRequest } from "@/components/HealthPermissionRequest";
+import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 import { MoodType } from "shared";
-import { format, subDays, isSameDay, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
+
+interface MoodEntry {
+	date: string;
+	mood: MoodType;
+}
+
+interface MonthEntries {
+	[key: string]: MoodEntry[];
+}
 
 export default function ProfileScreen() {
-	const router = useRouter();
 	const { logout, user } = useAuth();
 	const scheme = useColorScheme();
-	const colors = Colors[scheme];
+	const colors = Colors[scheme ?? "light"];
 	const [isLoading, setIsLoading] = useState(true);
 
 	// Stat counts
@@ -47,6 +52,77 @@ export default function ProfileScreen() {
 	// Get mood data from store
 	const fetchAllEntries = useMoodStore((state) => state.fetchAllEntries);
 	const entries = useMoodStore((state) => state.entries);
+
+	const isHealthKitInitialized = useHealthKitInit();
+
+	// Check if there's a streak of consecutive days
+	const checkForStreak = (entries: MoodEntry[], requiredDays: number): boolean => {
+		if (entries.length < requiredDays) return false;
+
+		// Sort entries by date
+		const sortedEntries = [...entries].sort(
+			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+		);
+
+		let currentStreak = 1;
+		let maxStreak = 1;
+
+		// Find the longest streak
+		for (let i = 1; i < sortedEntries.length; i++) {
+			const currentDate = parseISO(sortedEntries[i - 1].date);
+			const prevDate = parseISO(sortedEntries[i].date);
+
+			// Check if dates are consecutive
+			const dayDiff =
+				Math.abs(currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+
+			if (dayDiff === 1) {
+				currentStreak++;
+				maxStreak = Math.max(maxStreak, currentStreak);
+			} else {
+				currentStreak = 1;
+			}
+		}
+
+		return maxStreak >= requiredDays;
+	};
+
+	// Check if there's a month where at least 80% of entries are happy
+	const checkForHappyMonth = (entries: MoodEntry[]): boolean => {
+		if (entries.length < 15) return false; // Need at least 15 entries to qualify
+
+		// Group entries by month
+		const entriesByMonth: MonthEntries = {};
+
+		entries.forEach((entry) => {
+			const date = parseISO(entry.date);
+			const monthKey = format(date, "yyyy-MM");
+
+			if (!entriesByMonth[monthKey]) {
+				entriesByMonth[monthKey] = [];
+			}
+
+			entriesByMonth[monthKey].push(entry);
+		});
+
+		// Check each month
+		for (const month in entriesByMonth) {
+			const monthEntries = entriesByMonth[month];
+
+			if (monthEntries.length >= 15) {
+				const happyCount = monthEntries.filter(
+					(entry) => entry.mood === MoodType.HAPPY
+				).length;
+				const happyPercentage = (happyCount / monthEntries.length) * 100;
+
+				if (happyPercentage >= 80) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	};
 
 	// Load mood data and calculate stats
 	useEffect(() => {
@@ -96,75 +172,6 @@ export default function ProfileScreen() {
 		}
 	}, [entries]);
 
-	// Check if there's a streak of consecutive days
-	const checkForStreak = (entries, requiredDays) => {
-		if (entries.length < requiredDays) return false;
-
-		// Sort entries by date
-		const sortedEntries = [...entries].sort(
-			(a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-		);
-
-		let currentStreak = 1;
-		let maxStreak = 1;
-
-		// Find the longest streak
-		for (let i = 1; i < sortedEntries.length; i++) {
-			const currentDate = parseISO(sortedEntries[i - 1].date);
-			const prevDate = parseISO(sortedEntries[i].date);
-
-			// Check if dates are consecutive
-			const dayDiff =
-				Math.abs(currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
-
-			if (dayDiff === 1) {
-				currentStreak++;
-				maxStreak = Math.max(maxStreak, currentStreak);
-			} else {
-				currentStreak = 1;
-			}
-		}
-
-		return maxStreak >= requiredDays;
-	};
-
-	// Check if there's a month where at least 80% of entries are happy
-	const checkForHappyMonth = (entries) => {
-		if (entries.length < 15) return false; // Need at least 15 entries to qualify
-
-		// Group entries by month
-		const entriesByMonth = {};
-
-		entries.forEach((entry) => {
-			const date = parseISO(entry.date);
-			const monthKey = format(date, "yyyy-MM");
-
-			if (!entriesByMonth[monthKey]) {
-				entriesByMonth[monthKey] = [];
-			}
-
-			entriesByMonth[monthKey].push(entry);
-		});
-
-		// Check each month
-		for (const month in entriesByMonth) {
-			const monthEntries = entriesByMonth[month];
-
-			if (monthEntries.length >= 15) {
-				const happyCount = monthEntries.filter(
-					(entry) => entry.mood === MoodType.HAPPY
-				).length;
-				const happyPercentage = (happyCount / monthEntries.length) * 100;
-
-				if (happyPercentage >= 80) {
-					return true;
-				}
-			}
-		}
-
-		return false;
-	};
-
 	// Animation effect when component mounts
 	useEffect(() => {
 		Animated.parallel([
@@ -188,20 +195,9 @@ export default function ProfileScreen() {
 
 	// Gradient colors for stat cards
 	const statGradients = {
-		days: ["#5B9AA9", "#4A7F8C"], // Primary colors
-		happy: ["#84B59F", "#6B9681"], // Success colors
-		positivity: ["#A1D6E2", "#82C5D4"], // Info colors
-	};
-
-	const [healthModalVisible, setHealthModalVisible] = useState(false);
-	const hasHealthPermissions = useHealthStore((state) => state.hasHealthPermissions);
-
-	// Handle closing the health modal
-	const handleHealthModalClose = () => {
-		// Use setTimeout to avoid state updates during render cycle
-		setTimeout(() => {
-			setHealthModalVisible(false);
-		}, 0);
+		days: ["#5B9AA9", "#4A7F8C"] as [string, string],
+		happy: ["#84B59F", "#6B9681"] as [string, string],
+		positivity: ["#A1D6E2", "#82C5D4"] as [string, string],
 	};
 
 	return (
@@ -579,16 +575,15 @@ export default function ProfileScreen() {
 							<TouchableOpacity
 								style={[styles.settingRow, { backgroundColor: colors.surface }]}
 								onPress={() => {
-									if (!hasHealthPermissions) {
-										setHealthModalVisible(true);
-									} else {
-										// Maybe show a different modal or alert for already connected health data
-										Alert.alert(
-											"Health Data Connected",
-											"Your Apple Health data is already connected to MoodTech.",
-											[{ text: "OK", style: "default" }]
-										);
-									}
+									Alert.alert(
+										isHealthKitInitialized
+											? "Health Data Connected"
+											: "Health Data Not Connected",
+										isHealthKitInitialized
+											? "Your Apple Health data is connected to MoodTech. Your steps and other health metrics will be shown alongside your mood entries."
+											: "Health data integration is managed automatically. The app will prompt you for permissions when needed.",
+										[{ text: "OK", style: "default" }]
+									);
 								}}
 							>
 								<Icon
@@ -599,7 +594,7 @@ export default function ProfileScreen() {
 									Health Data
 								</Text>
 								<View style={styles.settingRightContent}>
-									{hasHealthPermissions && (
+									{isHealthKitInitialized ? (
 										<View
 											style={[
 												styles.connectedBadge,
@@ -608,14 +603,23 @@ export default function ProfileScreen() {
 										>
 											<Text style={styles.connectedText}>Connected</Text>
 										</View>
+									) : (
+										<View
+											style={[
+												styles.connectedBadge,
+												{ backgroundColor: colors.subtle },
+											]}
+										>
+											<Text
+												style={[
+													styles.connectedText,
+													{ color: colors.textSecondary },
+												]}
+											>
+												Not Connected
+											</Text>
+										</View>
 									)}
-									<Icon
-										name="chevron-right-outline"
-										style={[
-											styles.chevronIcon,
-											{ tintColor: colors.textSecondary },
-										]}
-									/>
 								</View>
 							</TouchableOpacity>
 
@@ -637,20 +641,6 @@ export default function ProfileScreen() {
 					</ScrollView>
 				</SafeAreaView>
 			</Animated.View>
-
-			{/* Health Permission Modal */}
-			<Modal
-				visible={healthModalVisible}
-				animationType="fade"
-				transparent={true}
-				onRequestClose={handleHealthModalClose}
-			>
-				<View style={styles.modalOverlay}>
-					<View style={styles.modalContainer}>
-						<HealthPermissionRequest onComplete={handleHealthModalClose} />
-					</View>
-				</View>
-			</Modal>
 		</Layout>
 	);
 }
@@ -835,16 +825,5 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 		fontSize: 12,
 		fontWeight: "600",
-	},
-	modalOverlay: {
-		flex: 1,
-		backgroundColor: "rgba(0, 0, 0, 0.5)",
-		justifyContent: "center",
-		alignItems: "center",
-		padding: 24,
-	},
-	modalContainer: {
-		width: "100%",
-		maxWidth: 500,
 	},
 });
