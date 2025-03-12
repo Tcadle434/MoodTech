@@ -9,7 +9,7 @@ import { MoodType } from "shared";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { MoodModalProps } from "@/types/calendar";
-import { MOOD_EMOJIS, MOOD_GRADIENTS, getMoodColor, getMoodName } from "@/constants/MoodConstants";
+import { MOOD_EMOJIS, MOOD_STYLES, getMoodColor, getMoodName } from "@/constants/MoodConstants";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 
 const MoodButton = ({
@@ -101,7 +101,7 @@ export const MoodModal = ({
 								style={[styles.moodDetails, { backgroundColor: colors.background }]}
 							>
 								<LinearGradient
-									colors={MOOD_GRADIENTS[selectedMood || MoodType.HAPPY]}
+									colors={MOOD_STYLES[selectedMood || MoodType.HAPPY].gradient}
 									style={styles.moodDetailGradient}
 									start={{ x: 0, y: 0 }}
 									end={{ x: 1, y: 1 }}

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
 import React, { useState, useRef, useEffect } from "react";
-import { format, subDays } from "date-fns";
+import { format } from "date-fns";
 import { MoodType } from "shared";
 import { useMoodStore } from "@/store/moodStore";
 import { Colors } from "@/constants/Colors";
@@ -20,43 +20,7 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 import { useHealthKitInit } from "@/hooks/useHealthKitInit";
-
-// Mood emoji mapping helper
-const MOOD_EMOJIS: Record<MoodType, string> = {
-	[MoodType.HAPPY]: "😊",
-	[MoodType.NEUTRAL]: "😐",
-	[MoodType.SAD]: "😢",
-};
-
-// Mood gradient colors helper
-const MOOD_COLORS: Record<MoodType, { gradient: [string, string]; text: string }> = {
-	[MoodType.HAPPY]: {
-		gradient: ["#84B59F", "#6B9681"],
-		text: "#ffffff",
-	},
-	[MoodType.NEUTRAL]: {
-		gradient: ["#5B9AA9", "#4A7F8C"],
-		text: "#ffffff",
-	},
-	[MoodType.SAD]: {
-		gradient: ["#7B98A6", "#6C8490"],
-		text: "#ffffff",
-	},
-};
-
-// Get mood name helper
-const getMoodName = (mood: MoodType): string => {
-	switch (mood) {
-		case MoodType.HAPPY:
-			return "Happy";
-		case MoodType.NEUTRAL:
-			return "Neutral";
-		case MoodType.SAD:
-			return "Sad";
-		default:
-			return "";
-	}
-};
+import { MOOD_EMOJIS, MOOD_STYLES, getMoodName } from "@/constants/MoodConstants";
 
 // Mood selection component
 const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) => {
@@ -96,13 +60,13 @@ const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) =
 				]}
 			>
 				<LinearGradient
-					colors={MOOD_COLORS[type].gradient}
+					colors={MOOD_STYLES[type].gradient}
 					start={{ x: 0, y: 0 }}
 					end={{ x: 1, y: 1 }}
 					style={styles.moodCard}
 				>
 					<Text style={styles.emoji}>{MOOD_EMOJIS[type]}</Text>
-					<Text style={[styles.moodLabel, { color: MOOD_COLORS[type].text }]}>
+					<Text style={[styles.moodLabel, { color: MOOD_STYLES[type].text }]}>
 						{getMoodName(type)}
 					</Text>
 				</LinearGradient>
@@ -249,7 +213,7 @@ export default function HomeScreen() {
 								]}
 							>
 								<LinearGradient
-									colors={MOOD_COLORS[todayMoodEntry.mood].gradient}
+									colors={MOOD_STYLES[todayMoodEntry.mood].gradient}
 									start={{ x: 0, y: 0 }}
 									end={{ x: 1, y: 1 }}
 									style={styles.todayMoodCard}
