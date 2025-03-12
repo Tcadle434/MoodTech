@@ -5,7 +5,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { DayCellProps } from "@/types/calendar";
-import { MOOD_GRADIENTS } from "@/constants/MoodConstants";
+import { MOOD_STYLES } from "@/constants/MoodConstants";
 
 export const DayCell = (props: DayCellProps) => {
 	const { date, style, moodEntries, ...cellProps } = props;
@@ -46,7 +46,7 @@ export const DayCell = (props: DayCellProps) => {
 			{moodEntry ? (
 				<View style={[styles.moodIndicator, { shadowColor: colors.text }]}>
 					<LinearGradient
-						colors={MOOD_GRADIENTS[moodEntry.mood]}
+						colors={MOOD_STYLES[moodEntry.mood].gradient}
 						style={styles.moodGradient}
 						start={{ x: 0, y: 0 }}
 						end={{ x: 1, y: 1 }}

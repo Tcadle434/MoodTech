@@ -6,23 +6,47 @@ export const MOOD_EMOJIS: Record<MoodType, string> = {
 	[MoodType.SAD]: "😢",
 };
 
-export const MOOD_GRADIENTS: Record<MoodType, [string, string]> = {
-	[MoodType.HAPPY]: ["#84B59F", "#6B9681"], // Success/tertiary colors
-	[MoodType.NEUTRAL]: ["#5B9AA9", "#4A7F8C"], // Primary color
-	[MoodType.SAD]: ["#7B98A6", "#6C8490"], // Neutral, more subdued
+// Combined styling information for different contexts
+export const MOOD_STYLES: Record<
+	MoodType,
+	{
+		gradient: [string, string];
+		text: string;
+		lightColor: string;
+		darkColor: string;
+	}
+> = {
+	[MoodType.HAPPY]: {
+		gradient: ["#84B59F", "#6B9681"],
+		text: "#ffffff",
+		lightColor: "#84B59F",
+		darkColor: "#8FC0A9",
+	},
+	[MoodType.NEUTRAL]: {
+		gradient: ["#5B9AA9", "#4A7F8C"],
+		text: "#ffffff",
+		lightColor: "#5B9AA9",
+		darkColor: "#64A7B5",
+	},
+	[MoodType.SAD]: {
+		gradient: ["#7B98A6", "#6C8490"],
+		text: "#ffffff",
+		lightColor: "#7B98A6",
+		darkColor: "#6E8C9E",
+	},
 };
 
 export const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "light"): string => {
-	switch (mood) {
-		case MoodType.HAPPY:
-			return colorScheme === "light" ? "#84B59F" : "#8FC0A9";
-		case MoodType.NEUTRAL:
-			return colorScheme === "light" ? "#5B9AA9" : "#64A7B5";
-		case MoodType.SAD:
-			return colorScheme === "light" ? "#7B98A6" : "#6E8C9E";
-		default:
-			return "transparent";
-	}
+	const styles = MOOD_STYLES[mood];
+	return colorScheme === "light" ? styles.lightColor : styles.darkColor;
+};
+
+export const getMoodGradient = (mood: MoodType): [string, string] => {
+	return MOOD_STYLES[mood].gradient;
+};
+
+export const getMoodTextColor = (mood: MoodType): string => {
+	return MOOD_STYLES[mood].text;
 };
 
 export const getMoodName = (mood: MoodType): string => {
