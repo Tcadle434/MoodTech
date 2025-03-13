@@ -46,9 +46,9 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			const entries = await moodService.getAllMoods();
 			set({ entries, isLoading: false });
 		} catch (error: any) {
-			set({ 
-				error: handleError(error, "Error fetching mood entries:"), 
-				isLoading: false 
+			set({
+				error: handleError(error, "Error fetching mood entries:"),
+				isLoading: false,
 			});
 		}
 	},
@@ -85,9 +85,9 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 
 			return entry;
 		} catch (error: any) {
-			set({ 
-				error: handleError(error, "Error fetching mood for date:"), 
-				isLoading: false 
+			set({
+				error: handleError(error, "Error fetching mood for date:"),
+				isLoading: false,
 			});
 			return null;
 		}
@@ -99,9 +99,9 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			const entries = await moodService.getMoodsByDateRange(startDate, endDate);
 			set({ entries, isLoading: false });
 		} catch (error: any) {
-			set({ 
-				error: handleError(error, "Error fetching mood entries for range:"), 
-				isLoading: false 
+			set({
+				error: handleError(error, "Error fetching mood entries for range:"),
+				isLoading: false,
 			});
 		}
 	},
@@ -113,17 +113,14 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			const newEntry = await moodService.saveMood(date, mood, note);
 
 			set((state) => ({
-				entries: [
-					...state.entries.filter((e) => e.date !== formattedDate),
-					newEntry,
-				],
+				entries: [...state.entries.filter((e) => e.date !== formattedDate), newEntry],
 				refreshTrigger: !state.refreshTrigger,
 				isLoading: false,
 			}));
 		} catch (error: any) {
-			set({ 
-				error: handleError(error, "Error adding mood entry:"), 
-				isLoading: false 
+			set({
+				error: handleError(error, "Error adding mood entry:"),
+				isLoading: false,
 			});
 		}
 	},
@@ -138,9 +135,9 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 				isLoading: false,
 			}));
 		} catch (error: any) {
-			set({ 
-				error: handleError(error, "Error updating mood entry:"), 
-				isLoading: false 
+			set({
+				error: handleError(error, "Error updating mood entry:"),
+				isLoading: false,
 			});
 		}
 	},
@@ -155,9 +152,9 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 				isLoading: false,
 			}));
 		} catch (error: any) {
-			set({ 
-				error: handleError(error, "Error deleting mood entry:"), 
-				isLoading: false 
+			set({
+				error: handleError(error, "Error deleting mood entry:"),
+				isLoading: false,
 			});
 		}
 	},

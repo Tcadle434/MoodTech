@@ -33,10 +33,7 @@ function RootLayoutContent() {
 
 		const inAuthGroup = segments[0] === "(auth)";
 
-		if (!isAuthenticated && !inAuthGroup) {
-			// Redirect to the login screen if not authenticated
-			router.replace("/(auth)/login");
-		} else if (isAuthenticated && inAuthGroup) {
+		if (isAuthenticated && inAuthGroup) {
 			// Redirect to the main app if authenticated
 			router.replace("/(tabs)");
 		}

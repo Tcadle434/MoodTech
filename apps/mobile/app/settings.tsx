@@ -47,7 +47,7 @@ export default function SettingsScreen() {
 
 	const handleLogout = async () => {
 		await logout();
-		// The AuthContext will handle navigation
+		router.replace("/(auth)/login");
 	};
 
 	return (

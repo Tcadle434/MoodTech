@@ -131,12 +131,6 @@ export default function HomeScreen() {
 		}, [fetchMoodForDate])
 	);
 
-	// Initial data fetch on component mount
-	useEffect(() => {
-		// Slight delay to ensure auth is set up
-		setTimeout(fetchMoodData, 500);
-	}, []);
-
 	const handleSaveMood = async () => {
 		try {
 			const moodToSave = selectedMood || MoodType.HAPPY;
