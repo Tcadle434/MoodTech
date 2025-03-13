@@ -10,6 +10,7 @@ import * as eva from "@eva-design/eva";
 import { ApplicationProvider, IconRegistry, Layout, Spinner, Text } from "@ui-kitten/components";
 import { EvaIconsPack } from "@ui-kitten/eva-icons";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { themes } from "@/theme/theme";
@@ -32,10 +33,7 @@ function RootLayoutContent() {
 
 		const inAuthGroup = segments[0] === "(auth)";
 
-		if (!isAuthenticated && !inAuthGroup) {
-			// Redirect to the login screen if not authenticated
-			router.replace("/(auth)/login");
-		} else if (isAuthenticated && inAuthGroup) {
+		if (isAuthenticated && inAuthGroup) {
 			// Redirect to the main app if authenticated
 			router.replace("/(tabs)");
 		}
@@ -86,8 +84,10 @@ export default function RootLayout() {
 				<QueryClientProvider client={queryClient}>
 					<ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
 						<AuthProvider>
-							<RootLayoutContent />
-							<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+							<GestureHandlerRootView style={{ flex: 1 }}>
+								<RootLayoutContent />
+								<StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+							</GestureHandlerRootView>
 						</AuthProvider>
 					</ThemeProvider>
 				</QueryClientProvider>
