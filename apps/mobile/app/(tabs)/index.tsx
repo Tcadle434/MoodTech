@@ -52,7 +52,8 @@ export default function HomeScreen() {
 			},
 			{
 				onSuccess: () => {
-					queryClient.invalidateQueries({ queryKey: ["mood", "moodForDate"] });
+					queryClient.invalidateQueries({ queryKey: ["mood"] });
+					queryClient.invalidateQueries({ queryKey: ["moods"] });
 					setMoodModalVisible(false);
 					setNote("");
 				},

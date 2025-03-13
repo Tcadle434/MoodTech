@@ -4,7 +4,6 @@ import { Layout } from "@ui-kitten/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useMoodStore } from "@/store/moodStore";
 import { MoodType } from "shared";
 import { format, parseISO } from "date-fns";
 import { useRouter } from "expo-router";
@@ -13,6 +12,7 @@ import { UserInfo } from "@/components/profile/UserInfo";
 import { StatsGrid } from "@/components/profile/StatsGrid";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { useAllMoods } from "@/hooks/useAllMoods";
 
 interface MoodEntry {
 	date: string;
@@ -24,11 +24,11 @@ interface MonthEntries {
 }
 
 export default function ProfileScreen() {
-	const { logout, user } = useAuth();
+	const { data: moods, isLoading: isMoodsLoading } = useAllMoods();
+	const { user } = useAuth();
 	const router = useRouter();
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
-	const [isLoading, setIsLoading] = useState(true);
 
 	// Stat counts
 	const [totalDays, setTotalDays] = useState(0);
@@ -45,11 +45,6 @@ export default function ProfileScreen() {
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
-	// Get mood data from store
-	const fetchAllEntries = useMoodStore((state) => state.fetchAllEntries);
-	const entries = useMoodStore((state) => state.entries);
-
-	// Check if there's a streak of consecutive days
 	const checkForStreak = (entries: MoodEntry[], requiredDays: number): boolean => {
 		if (entries.length < requiredDays) return false;
 
@@ -118,52 +113,29 @@ export default function ProfileScreen() {
 		return false;
 	};
 
-	// Load mood data and calculate stats
-	useEffect(() => {
-		const loadMoodData = async () => {
-			setIsLoading(true);
-			try {
-				await fetchAllEntries();
-			} catch (error) {
-				console.error("Error fetching mood data:", error);
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		loadMoodData();
-	}, []);
-
 	// Calculate stats and badges whenever entries change
 	useEffect(() => {
-		if (entries.length > 0) {
-			// Total days with mood entries
-			setTotalDays(entries.length);
+		if (!isMoodsLoading && moods && moods.length > 0) {
+			setTotalDays(moods.length);
 
-			// Count happy days
-			const happyCount = entries.filter((entry) => entry.mood === MoodType.HAPPY).length;
+			const happyCount = moods.filter((entry) => entry.mood === MoodType.HAPPY).length;
 			setHappyDays(happyCount);
 
-			// Calculate happy percentage
-			const percentage = Math.round((happyCount / entries.length) * 100);
+			const percentage = Math.round((happyCount / moods.length) * 100);
 			setHappyPercentage(percentage);
 
-			// Check for first mood badge
-			setHasFirstMood(entries.length > 0);
+			setHasFirstMood(moods.length > 0);
 
-			// Check for 7-day streak
-			const has7Day = checkForStreak(entries, 7);
+			const has7Day = checkForStreak(moods, 7);
 			setHas7DayStreak(has7Day);
 
-			// Check for 30-day streak
-			const has30Day = checkForStreak(entries, 30);
+			const has30Day = checkForStreak(moods, 30);
 			setHas30DayStreak(has30Day);
 
-			// Check for happy month badge (if at least 80% of entries in a month are happy)
-			const isHappyMonth = checkForHappyMonth(entries);
+			const isHappyMonth = checkForHappyMonth(moods);
 			setHasHappyMonth(isHappyMonth);
 		}
-	}, [entries]);
+	}, [moods]);
 
 	// Animation effect when component mounts
 	useEffect(() => {
@@ -181,19 +153,8 @@ export default function ProfileScreen() {
 		]).start();
 	}, [fadeAnim, scaleAnim]);
 
-	const handleLogout = async () => {
-		await logout();
-	};
-
 	const handleSettingsPress = () => {
 		router.push("/settings");
-	};
-
-	// Gradient colors for stat cards
-	const statGradients = {
-		days: ["#5B9AA9", "#4A7F8C"] as [string, string],
-		happy: ["#84B59F", "#6B9681"] as [string, string],
-		positivity: ["#A1D6E2", "#82C5D4"] as [string, string],
 	};
 
 	return (
@@ -215,7 +176,7 @@ export default function ProfileScreen() {
 							avatarUrl={null}
 						/>
 
-						{isLoading ? (
+						{isMoodsLoading ? (
 							<LoadingSpinner message="Loading your stats..." />
 						) : (
 							<>

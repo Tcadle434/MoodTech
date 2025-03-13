@@ -4,7 +4,6 @@ import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 import get24HourStepCount from "@/api/healthKit/get24HourStepCount";
 
 export function useStepCount(date: Date) {
-	console.log("in useStepCount");
 	const isInitialized = useHealthKitInit();
 
 	return useQuery({
