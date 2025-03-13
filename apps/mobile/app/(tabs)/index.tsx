@@ -11,7 +11,7 @@ import {
 import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
 import React, { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 import { useMoodStore } from "@/store/moodStore";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,7 +20,8 @@ import { useColorScheme } from "@/hooks/useColorScheme";
 import { useFocusEffect } from "@react-navigation/native";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 import { useHealthKitInit } from "@/hooks/useHealthKitInit";
-import { MOOD_EMOJIS, MOOD_STYLES, getMoodName } from "@/constants/MoodConstants";
+import { MOOD_EMOJIS, MOOD_STYLES, getMoodName, getSubMoodName } from "@/constants/MoodConstants";
+import { MoodModal } from "@/components/calendar/MoodModal";
 
 // Mood selection component
 const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) => {
@@ -79,15 +80,18 @@ export default function HomeScreen() {
 	const isInitialized = useHealthKitInit();
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+	const [selectedSubMood, setSelectedSubMood] = useState<SubMoodType | null>(null);
 	const [note, setNote] = useState("");
 	const [isLoading, setIsLoading] = useState(true);
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
 	// State to track today's mood from the API
-	const [todayMoodEntry, setTodayMoodEntry] = useState<{ mood: MoodType; note?: string } | null>(
-		null
-	);
+	const [todayMoodEntry, setTodayMoodEntry] = useState<{
+		mood: MoodType;
+		subMood?: SubMoodType;
+		note?: string;
+	} | null>(null);
 
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
@@ -115,14 +119,22 @@ export default function HomeScreen() {
 	const fetchMoodData = async () => {
 		setIsLoading(true);
 		try {
+			console.log("[Debug] Fetching mood data for today...");
 			const result = await fetchMoodForDate(new Date());
+			console.log("[Debug] API result:", result);
 			setTodayMoodEntry(result);
+			console.log("[Debug] Today's mood entry after set:", todayMoodEntry);
 		} catch (error) {
-			console.error("Error fetching mood data:", error);
+			console.error("[Debug] Error fetching mood data:", error);
 		} finally {
 			setIsLoading(false);
 		}
 	};
+
+	// Add a useEffect to log todayMoodEntry changes
+	useEffect(() => {
+		console.log("[Debug] todayMoodEntry changed:", todayMoodEntry);
+	}, [todayMoodEntry]);
 
 	// Refresh data when the screen comes into focus
 	useFocusEffect(
@@ -133,10 +145,13 @@ export default function HomeScreen() {
 
 	const handleSaveMood = async () => {
 		try {
-			const moodToSave = selectedMood || MoodType.HAPPY;
-			await addMoodEntry(new Date(), moodToSave, note);
+			if (!selectedMood || !selectedSubMood) return;
+
+			await addMoodEntry(new Date(), selectedMood, note, selectedSubMood);
 
 			setMoodModalVisible(false);
+			setSelectedMood(null);
+			setSelectedSubMood(null);
 			setNote("");
 
 			// Refresh the mood data
@@ -218,6 +233,11 @@ export default function HomeScreen() {
 									<Text category="s1" style={styles.todayMoodType}>
 										{getMoodName(todayMoodEntry.mood)}
 									</Text>
+									{todayMoodEntry.subMood && (
+										<Text style={styles.todaySubMoodType}>
+											{getSubMoodName(todayMoodEntry.subMood)}
+										</Text>
+									)}
 									<View style={styles.noteDivider} />
 									<Text category="p1" style={styles.todayMoodNote}>
 										{todayMoodEntry.note || "No note added"}
@@ -259,82 +279,24 @@ export default function HomeScreen() {
 						</Animated.View>
 					)}
 
-					<RNModal
+					<MoodModal
 						visible={moodModalVisible}
-						animationType="slide"
-						transparent={true}
-						onRequestClose={() => setMoodModalVisible(false)}
-					>
-						<BlurView
-							intensity={30}
-							tint={scheme === "dark" ? "dark" : "light"}
-							style={styles.modalOverlay}
-						>
-							<View
-								style={[
-									styles.modalContent,
-									{
-										backgroundColor: colors.surface,
-										shadowColor: colors.text,
-									},
-								]}
-							>
-								<View
-									style={[styles.modalHandle, { backgroundColor: colors.subtle }]}
-								/>
-								<Text
-									category="h4"
-									style={[styles.modalTitle, { color: colors.text }]}
-								>
-									Tell us more
-								</Text>
-
-								<View style={styles.selectedMoodContainer}>
-									<Text style={styles.selectedMoodEmoji}>
-										{selectedMood ? MOOD_EMOJIS[selectedMood] : ""}
-									</Text>
-									<Text
-										category="s1"
-										style={[
-											styles.selectedMoodText,
-											{ color: colors.textSecondary },
-										]}
-									>
-										You're feeling{" "}
-										<Text style={{ fontWeight: "600", color: colors.text }}>
-											{selectedMood ? getMoodName(selectedMood) : ""}
-										</Text>
-									</Text>
-								</View>
-
-								{isInitialized && <HealthDataDisplay date={new Date()} />}
-
-								<Input
-									multiline
-									textStyle={{ minHeight: 120, color: colors.text }}
-									placeholder="What happened today? (optional)"
-									placeholderTextColor={colors.textSecondary}
-									value={note}
-									onChangeText={setNote}
-									style={styles.noteInput}
-								/>
-								<Button
-									onPress={handleSaveMood}
-									style={styles.saveButton}
-									status="primary"
-								>
-									Save
-								</Button>
-								<Button
-									appearance="ghost"
-									status="basic"
-									onPress={() => setMoodModalVisible(false)}
-								>
-									Cancel
-								</Button>
-							</View>
-						</BlurView>
-					</RNModal>
+						onClose={() => {
+							setMoodModalVisible(false);
+							setSelectedMood(null);
+							setSelectedSubMood(null);
+							setNote("");
+						}}
+						selectedDate={new Date()}
+						viewMode="add"
+						selectedMood={selectedMood}
+						selectedSubMood={selectedSubMood}
+						note={note}
+						onSave={handleSaveMood}
+						onMoodSelect={setSelectedMood}
+						onSubMoodSelect={setSelectedSubMood}
+						onNoteChange={setNote}
+					/>
 				</SafeAreaView>
 			</Animated.View>
 		</Layout>
@@ -395,23 +357,28 @@ const styles = StyleSheet.create({
 	},
 	moodRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		justifyContent: "center",
+		alignItems: "center",
 		width: "100%",
 		gap: 16,
+		paddingHorizontal: 16,
 	},
 	moodTouchable: {
-		width: 100,
-		aspectRatio: 0.75,
-		transform: [{ translateY: 0 }],
+		width: "28%",
+		minWidth: 90,
+		maxWidth: 110,
+		aspectRatio: 0.85,
+		marginBottom: 16,
 	},
 	moodCardContainer: {
 		width: "100%",
 		height: "100%",
-		borderRadius: 24,
+		borderRadius: 20,
 		overflow: "hidden",
-		shadowOffset: { width: 0, height: 8 },
+		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.15,
-		shadowRadius: 12,
+		shadowRadius: 8,
 		elevation: 5,
 	},
 	moodCard: {
@@ -419,16 +386,16 @@ const styles = StyleSheet.create({
 		height: "100%",
 		alignItems: "center",
 		justifyContent: "center",
-		padding: 16,
-		borderRadius: 24,
+		padding: 12,
+		borderRadius: 20,
 	},
 	emoji: {
-		fontSize: 44,
-		marginBottom: 12,
+		fontSize: 36,
+		marginBottom: 8,
 	},
 	moodLabel: {
 		textAlign: "center",
-		fontSize: 16,
+		fontSize: 14,
 		fontWeight: "600",
 		color: "#FFFFFF",
 		opacity: 0.9,
@@ -534,6 +501,12 @@ const styles = StyleSheet.create({
 		fontWeight: "700",
 		fontSize: 22,
 		color: "#FFFFFF",
+	},
+	todaySubMoodType: {
+		fontSize: 18,
+		color: "rgba(255, 255, 255, 0.9)",
+		marginBottom: 16,
+		textAlign: "center",
 	},
 	noteDivider: {
 		height: 1,

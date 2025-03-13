@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 import { format, parseISO } from "date-fns";
 import { moodService } from "@/api";
 
@@ -7,6 +7,7 @@ interface MoodEntry {
 	id: string;
 	date: string; // ISO date string
 	mood: MoodType;
+	subMood?: SubMoodType;
 	note?: string;
 }
 
@@ -20,8 +21,18 @@ interface MoodState {
 	fetchAllEntries: () => Promise<void>;
 	fetchMoodForDate: (date: Date) => Promise<MoodEntry | null>;
 	fetchEntriesForDateRange: (startDate: Date, endDate: Date) => Promise<void>;
-	addMoodEntry: (date: Date, mood: MoodType, note?: string) => Promise<void>;
-	updateMoodEntry: (id: string, mood: MoodType, note?: string) => Promise<void>;
+	addMoodEntry: (
+		date: Date,
+		mood: MoodType,
+		note?: string,
+		subMood?: SubMoodType
+	) => Promise<void>;
+	updateMoodEntry: (
+		id: string,
+		mood: MoodType,
+		note?: string,
+		subMood?: SubMoodType
+	) => Promise<void>;
 	deleteMoodEntry: (id: string) => Promise<void>;
 	getMoodForDate: (date: Date) => MoodEntry | undefined;
 	getEntriesForDateRange: (startDate: Date, endDate: Date) => MoodEntry[];
@@ -56,10 +67,13 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 	fetchMoodForDate: async (date) => {
 		set({ isLoading: true, error: null });
 		try {
+			console.log("[Debug] moodStore: Calling getMoodByDate for date:", date);
 			const entry = await moodService.getMoodByDate(date);
+			console.log("[Debug] moodStore: API response:", entry);
 
 			// Handle empty response
 			if (!entry || (typeof entry === "string" && entry.trim() === "")) {
+				console.log("[Debug] moodStore: Empty response detected");
 				set({ isLoading: false });
 				return null;
 			}
@@ -67,7 +81,9 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 			// Update the entries list to include this entry
 			set((state) => {
 				const formattedDate = format(date, "yyyy-MM-dd");
+				console.log("[Debug] moodStore: Formatted date:", formattedDate);
 				const existingEntryIndex = state.entries.findIndex((e) => e.date === formattedDate);
+				console.log("[Debug] moodStore: Existing entry index:", existingEntryIndex);
 				const newEntries = [...state.entries];
 
 				if (existingEntryIndex >= 0) {
@@ -85,6 +101,7 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 
 			return entry;
 		} catch (error: any) {
+			console.error("[Debug] moodStore: Error in fetchMoodForDate:", error);
 			set({
 				error: handleError(error, "Error fetching mood for date:"),
 				isLoading: false,
@@ -96,21 +113,25 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 	fetchEntriesForDateRange: async (startDate, endDate) => {
 		set({ isLoading: true, error: null });
 		try {
+			console.log("[Debug] moodStore: Fetching entries for range:", { startDate, endDate });
 			const entries = await moodService.getMoodsByDateRange(startDate, endDate);
-			set({ entries, isLoading: false });
+			console.log("[Debug] moodStore: Got entries:", entries);
+			set({ entries: entries || [], isLoading: false });
 		} catch (error: any) {
+			console.error("[Debug] moodStore: Error fetching entries for range:", error);
 			set({
 				error: handleError(error, "Error fetching mood entries for range:"),
+				entries: [],
 				isLoading: false,
 			});
 		}
 	},
 
-	addMoodEntry: async (date, mood, note) => {
+	addMoodEntry: async (date, mood, note, subMood) => {
 		set({ isLoading: true, error: null });
 		try {
 			const formattedDate = format(date, "yyyy-MM-dd");
-			const newEntry = await moodService.saveMood(date, mood, note);
+			const newEntry = await moodService.saveMood(date, mood, note, subMood);
 
 			set((state) => ({
 				entries: [...state.entries.filter((e) => e.date !== formattedDate), newEntry],
@@ -125,10 +146,10 @@ export const useMoodStore = create<MoodState>()((set, get) => ({
 		}
 	},
 
-	updateMoodEntry: async (id, mood, note) => {
+	updateMoodEntry: async (id, mood, note, subMood) => {
 		set({ isLoading: true, error: null });
 		try {
-			const updatedEntry = await moodService.updateMood(id, mood, note);
+			const updatedEntry = await moodService.updateMood(id, mood, note, subMood);
 			set((state) => ({
 				entries: state.entries.map((entry) => (entry.id === id ? updatedEntry : entry)),
 				refreshTrigger: !state.refreshTrigger,

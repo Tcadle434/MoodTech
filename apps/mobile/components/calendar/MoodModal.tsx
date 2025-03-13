@@ -1,15 +1,23 @@
 import React from "react";
-import { View, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
 import { Text, Button, Input } from "@ui-kitten/components";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { format } from "date-fns";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { MoodModalProps } from "@/types/calendar";
-import { MOOD_EMOJIS, MOOD_STYLES, getMoodColor, getMoodName } from "@/constants/MoodConstants";
+import {
+	MOOD_EMOJIS,
+	MOOD_STYLES,
+	getMoodColor,
+	getMoodName,
+	SUB_MOOD_EMOJIS,
+	getSubMoodName,
+	getSubMoodsForMood,
+} from "@/constants/MoodConstants";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 
 const MoodButton = ({
@@ -46,15 +54,48 @@ const MoodButton = ({
 	);
 };
 
+const SubMoodButton = ({
+	subMood,
+	isSelected,
+	onPress,
+}: {
+	subMood: SubMoodType;
+	isSelected: boolean;
+	onPress: () => void;
+}) => {
+	const scheme = useColorScheme();
+	const colors = Colors[scheme ?? "light"];
+
+	return (
+		<TouchableOpacity
+			style={[
+				styles.subMoodButton,
+				{
+					borderColor: isSelected ? colors.primary : colors.subtle,
+					backgroundColor: isSelected ? `${colors.primary}20` : undefined,
+				},
+				isSelected && styles.selectedSubMoodButton,
+			]}
+			activeOpacity={0.7}
+			onPress={onPress}
+		>
+			<Text style={styles.subMoodButtonEmoji}>{SUB_MOOD_EMOJIS[subMood]}</Text>
+			<Text style={{ color: colors.text }}>{getSubMoodName(subMood)}</Text>
+		</TouchableOpacity>
+	);
+};
+
 export const MoodModal = ({
 	visible,
 	onClose,
 	selectedDate,
 	viewMode,
 	selectedMood,
+	selectedSubMood,
 	note,
 	onSave,
 	onMoodSelect,
+	onSubMoodSelect,
 	onNoteChange,
 }: MoodModalProps) => {
 	const scheme = useColorScheme();
@@ -69,6 +110,33 @@ export const MoodModal = ({
 				onPress={() => onMoodSelect(mood)}
 			/>
 		));
+	};
+
+	const renderSubMoodButtons = () => {
+		if (!selectedMood) return null;
+
+		const subMoods = getSubMoodsForMood(selectedMood);
+		return (
+			<View style={styles.subMoodSection}>
+				<Text category="h6" style={[styles.subMoodTitle, { color: colors.text }]}>
+					More specifically...
+				</Text>
+				<ScrollView
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.subMoodScrollContent}
+				>
+					{subMoods.map((subMood) => (
+						<SubMoodButton
+							key={subMood}
+							subMood={subMood}
+							isSelected={selectedSubMood === subMood}
+							onPress={() => onSubMoodSelect(subMood)}
+						/>
+					))}
+				</ScrollView>
+			</View>
+		);
 	};
 
 	return (
@@ -112,6 +180,11 @@ export const MoodModal = ({
 									<Text category="h6" style={styles.moodDetailTitle}>
 										{selectedMood ? getMoodName(selectedMood) : ""}
 									</Text>
+									{selectedSubMood && (
+										<Text style={styles.subMoodDetailText}>
+											{getSubMoodName(selectedSubMood)}
+										</Text>
+									)}
 
 									{note ? (
 										<>
@@ -133,10 +206,12 @@ export const MoodModal = ({
 					) : (
 						<>
 							<Text category="h5" style={[styles.modalTitle, { color: colors.text }]}>
-								How were you feeling?
+								How are you feeling?
 							</Text>
 
 							<View style={styles.moodButtonRow}>{renderMoodButtons()}</View>
+
+							{selectedMood && renderSubMoodButtons()}
 
 							<Input
 								multiline
@@ -152,7 +227,7 @@ export const MoodModal = ({
 								onPress={onSave}
 								style={styles.saveButton}
 								status="primary"
-								disabled={!selectedMood}
+								disabled={!selectedMood || !selectedSubMood}
 							>
 								Save
 							</Button>
@@ -207,8 +282,10 @@ const styles = StyleSheet.create({
 	moodButtonRow: {
 		flexDirection: "row",
 		justifyContent: "space-between",
+		flexWrap: "wrap",
 		width: "100%",
 		marginBottom: 24,
+		gap: 12,
 	},
 	moodButton: {
 		padding: 16,
@@ -223,6 +300,33 @@ const styles = StyleSheet.create({
 	moodButtonEmoji: {
 		fontSize: 32,
 		marginBottom: 8,
+	},
+	subMoodSection: {
+		width: "100%",
+		marginBottom: 24,
+	},
+	subMoodTitle: {
+		marginBottom: 16,
+		fontSize: 18,
+		fontWeight: "600",
+	},
+	subMoodScrollContent: {
+		paddingHorizontal: 4,
+		gap: 12,
+	},
+	subMoodButton: {
+		padding: 12,
+		alignItems: "center",
+		borderWidth: 1,
+		borderRadius: 12,
+		minWidth: 100,
+	},
+	selectedSubMoodButton: {
+		borderWidth: 2,
+	},
+	subMoodButtonEmoji: {
+		fontSize: 24,
+		marginBottom: 6,
 	},
 	noteInput: {
 		width: "100%",
@@ -257,10 +361,15 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 	},
 	moodDetailTitle: {
-		marginBottom: 16,
+		marginBottom: 8,
 		fontSize: 22,
 		fontWeight: "700",
 		color: "#FFFFFF",
+	},
+	subMoodDetailText: {
+		fontSize: 18,
+		color: "rgba(255, 255, 255, 0.9)",
+		marginBottom: 16,
 	},
 	noteDivider: {
 		height: 1,
