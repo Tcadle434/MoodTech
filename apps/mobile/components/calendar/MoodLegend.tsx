@@ -6,7 +6,7 @@ import { MoodType } from "shared";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import { MOOD_STYLES, getMoodName } from "@/constants/MoodConstants";
+import { MOOD_METADATA } from "@/constants/MoodConstants";
 
 export const MoodLegend = () => {
 	const scheme = useColorScheme();
@@ -21,13 +21,13 @@ export const MoodLegend = () => {
 				{Object.values(MoodType).map((mood) => (
 					<View key={mood} style={styles.legendItem}>
 						<LinearGradient
-							colors={MOOD_STYLES[mood].gradient}
+							colors={MOOD_METADATA[mood].gradient}
 							style={styles.colorIndicator}
 							start={{ x: 0, y: 0 }}
 							end={{ x: 1, y: 1 }}
 						/>
 						<Text style={[styles.legendText, { color: colors.text }]}>
-							{getMoodName(mood)}
+							{MOOD_METADATA[mood].name}
 						</Text>
 					</View>
 				))}

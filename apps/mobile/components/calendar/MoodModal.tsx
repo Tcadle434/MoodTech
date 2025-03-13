@@ -9,7 +9,7 @@ import { MoodType } from "shared";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { MoodModalProps } from "@/types/calendar";
-import { MOOD_EMOJIS, MOOD_STYLES, getMoodColor, getMoodName } from "@/constants/MoodConstants";
+import { MOOD_METADATA, getMoodColor } from "@/constants/MoodConstants";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 
 const MoodButton = ({
@@ -40,8 +40,8 @@ const MoodButton = ({
 			activeOpacity={0.7}
 			onPress={onPress}
 		>
-			<Text style={styles.moodButtonEmoji}>{MOOD_EMOJIS[mood]}</Text>
-			<Text style={{ color: colors.text }}>{getMoodName(mood)}</Text>
+			<Text style={styles.moodButtonEmoji}>{MOOD_METADATA[mood].emoji}</Text>
+			<Text style={{ color: colors.text }}>{MOOD_METADATA[mood].name}</Text>
 		</TouchableOpacity>
 	);
 };
@@ -101,16 +101,16 @@ export const MoodModal = ({
 								style={[styles.moodDetails, { backgroundColor: colors.background }]}
 							>
 								<LinearGradient
-									colors={MOOD_STYLES[selectedMood || MoodType.HAPPY].gradient}
+									colors={MOOD_METADATA[selectedMood || MoodType.HAPPY].gradient}
 									style={styles.moodDetailGradient}
 									start={{ x: 0, y: 0 }}
 									end={{ x: 1, y: 1 }}
 								>
 									<Text style={styles.moodEmoji}>
-										{selectedMood ? MOOD_EMOJIS[selectedMood] : ""}
+										{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
 									</Text>
 									<Text category="h6" style={styles.moodDetailTitle}>
-										{selectedMood ? getMoodName(selectedMood) : ""}
+										{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
 									</Text>
 
 									{note ? (
