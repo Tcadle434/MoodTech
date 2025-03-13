@@ -8,8 +8,6 @@ import TabBarBackground from "@/components/ui/TabBarBackground";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
-//TODO: remove test tab
-
 export default function TabLayout() {
 	const colorScheme = useColorScheme();
 	const colors = Colors[colorScheme ?? "light"];
@@ -56,18 +54,6 @@ export default function TabLayout() {
 						tabBarIcon: ({ color }) => (
 							<Icon
 								name="home-outline"
-								style={{ width: 24, height: 24, tintColor: color }}
-							/>
-						),
-					}}
-				/>
-				<Tabs.Screen
-					name="test"
-					options={{
-						title: "Test",
-						tabBarIcon: ({ color }) => (
-							<Icon
-								name="flash-outline"
 								style={{ width: 24, height: 24, tintColor: color }}
 							/>
 						),

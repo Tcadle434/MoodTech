@@ -57,7 +57,9 @@ const base64UrlDecode = (str: string): string => {
 	const pad = input.length % 4;
 	if (pad) {
 		if (pad === 1) {
-			throw new Error("InvalidLengthError: Input base64url string is the wrong length to determine padding");
+			throw new Error(
+				"InvalidLengthError: Input base64url string is the wrong length to determine padding"
+			);
 		}
 		input += new Array(5 - pad).join("=");
 	}
@@ -121,11 +123,11 @@ export const createAuthHeaders = async (): Promise<HeadersInit> => {
 // Parse API response handling various formats
 const parseResponse = async (response: Response) => {
 	const responseText = await response.text();
-	
+
 	if (!responseText || responseText.trim() === "") {
 		return null;
 	}
-	
+
 	try {
 		return JSON.parse(responseText);
 	} catch (e) {
@@ -205,7 +207,7 @@ class ApiClient {
 	async request(endpoint: string, options: RequestInit = {}) {
 		try {
 			const headers = await createAuthHeaders();
-			
+
 			const response = await fetch(endpoint, {
 				...options,
 				headers: {

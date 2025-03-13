@@ -3,24 +3,20 @@ import { View, StyleSheet } from "react-native";
 import { Calendar as UICalendar } from "@ui-kitten/components";
 import { format } from "date-fns";
 import { MoodType } from "shared";
-
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { Colors } from "@/constants/Colors";
 import { MoodEntry } from "@/types/calendar";
 import { CalendarDayCell } from "./CalendarDayCell";
 import { MoodModal } from "./MoodModal";
 import { MoodLegend } from "./MoodLegend";
 
 interface CalendarProps {
-	moodEntries: MoodEntry[];
-	onSaveMood: (date: Date, mood: MoodType, note: string) => Promise<void>;
+	moods: MoodEntry[];
+	onSaveMood: (dateString: string, mood: MoodType, note: string) => Promise<void>;
 }
 
-export const Calendar = ({ moodEntries, onSaveMood }: CalendarProps) => {
-	const scheme = useColorScheme();
-	const colors = Colors[scheme ?? "light"];
-
+export const Calendar = ({ moods, onSaveMood }: CalendarProps) => {
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+	const [selectedDateString, setSelectedDateString] = useState<string | null>(null);
+
 	const [modalVisible, setModalVisible] = useState(false);
 	const [modalMode, setModalMode] = useState<"add" | "view">("add");
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
@@ -29,8 +25,11 @@ export const Calendar = ({ moodEntries, onSaveMood }: CalendarProps) => {
 	const handleDayPress = useCallback(
 		(date: Date) => {
 			setSelectedDate(date);
+
 			const dateString = format(date, "yyyy-MM-dd");
-			const existingEntry = moodEntries.find((entry) => entry.date === dateString);
+			setSelectedDateString(dateString);
+
+			const existingEntry = moods.find((entry) => entry.date === dateString);
 
 			if (existingEntry) {
 				setSelectedMood(existingEntry.mood);
@@ -43,17 +42,17 @@ export const Calendar = ({ moodEntries, onSaveMood }: CalendarProps) => {
 			}
 			setModalVisible(true);
 		},
-		[moodEntries]
+		[moods]
 	);
 
 	const handleSave = useCallback(async () => {
-		if (selectedDate && selectedMood) {
-			await onSaveMood(selectedDate, selectedMood, note);
+		if (selectedDateString && selectedMood) {
+			await onSaveMood(selectedDateString, selectedMood, note);
 			setModalVisible(false);
 			setSelectedMood(null);
 			setNote("");
 		}
-	}, [selectedDate, selectedMood, note, onSaveMood]);
+	}, [selectedDateString, selectedMood, note, onSaveMood]);
 
 	const handleClose = useCallback(() => {
 		setModalVisible(false);
@@ -66,7 +65,7 @@ export const Calendar = ({ moodEntries, onSaveMood }: CalendarProps) => {
 			<UICalendar
 				date={selectedDate || new Date()}
 				onSelect={handleDayPress}
-				renderDay={(props) => <CalendarDayCell {...props} moodEntries={moodEntries} />}
+				renderDay={(props) => <CalendarDayCell {...props} moodEntries={moods} />}
 				style={styles.calendar}
 			/>
 

@@ -1,7 +1,7 @@
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
 	StyleSheet,
 	View,
-	TouchableOpacity,
 	Modal as RNModal,
 	SafeAreaView,
 	Alert,
@@ -9,93 +9,62 @@ import {
 	Animated,
 } from "react-native";
 import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
-import React, { useState, useRef, useEffect } from "react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { MoodType } from "shared";
-import { useMoodStore } from "@/store/moodStore";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useFocusEffect } from "@react-navigation/native";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 import { useHealthKitInit } from "@/hooks/useHealthKitInit";
-import { MOOD_EMOJIS, MOOD_STYLES, getMoodName } from "@/constants/MoodConstants";
-
-// Mood selection component
-const MoodEmoji = ({ type, onPress }: { type: MoodType; onPress: () => void }) => {
-	const scheme = useColorScheme();
-	const colors = Colors[scheme ?? "light"];
-	const scaleAnim = useRef(new Animated.Value(1)).current;
-
-	const handlePressIn = () => {
-		Animated.spring(scaleAnim, {
-			toValue: 0.95,
-			useNativeDriver: true,
-		}).start();
-	};
-
-	const handlePressOut = () => {
-		Animated.spring(scaleAnim, {
-			toValue: 1,
-			useNativeDriver: true,
-		}).start();
-	};
-
-	return (
-		<TouchableOpacity
-			onPress={onPress}
-			onPressIn={handlePressIn}
-			onPressOut={handlePressOut}
-			activeOpacity={1}
-			style={styles.moodTouchable}
-		>
-			<Animated.View
-				style={[
-					styles.moodCardContainer,
-					{
-						shadowColor: colors.text,
-						transform: [{ scale: scaleAnim }],
-					},
-				]}
-			>
-				<LinearGradient
-					colors={MOOD_STYLES[type].gradient}
-					start={{ x: 0, y: 0 }}
-					end={{ x: 1, y: 1 }}
-					style={styles.moodCard}
-				>
-					<Text style={styles.emoji}>{MOOD_EMOJIS[type]}</Text>
-					<Text style={[styles.moodLabel, { color: MOOD_STYLES[type].text }]}>
-						{getMoodName(type)}
-					</Text>
-				</LinearGradient>
-			</Animated.View>
-		</TouchableOpacity>
-	);
-};
+import { MOOD_METADATA } from "@/constants/MoodConstants";
+import { useMoodForDate } from "@/hooks/useMoodForDate";
+import { useSaveMood } from "@/hooks/useSaveMood";
+import { useQueryClient } from "@tanstack/react-query";
+import { MoodEmoji } from "@/components/MoodEmoji";
 
 export default function HomeScreen() {
+	const today = new Date();
+	const todayString = useMemo(() => format(today, "yyyy-MM-dd"), []);
+	const formattedToday = format(parseISO(todayString), "EEEE, MMMM d");
+
 	const isInitialized = useHealthKitInit();
+	const queryClient = useQueryClient();
+	const { data: moodForDate, isLoading: isMoodLoading } = useMoodForDate(todayString);
+	const { mutate: saveMood, isPending: isSaving } = useSaveMood();
+
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
 	const [note, setNote] = useState("");
-	const [isLoading, setIsLoading] = useState(true);
+
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
-
-	// State to track today's mood from the API
-	const [todayMoodEntry, setTodayMoodEntry] = useState<{ mood: MoodType; note?: string } | null>(
-		null
-	);
 
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
 
-	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
-	const fetchMoodForDate = useMoodStore((state) => state.fetchMoodForDate);
+	const handleSaveMood = async () => {
+		saveMood(
+			{
+				dateString: todayString,
+				mood: selectedMood || MoodType.HAPPY,
+				note,
+			},
+			{
+				onSuccess: () => {
+					queryClient.invalidateQueries({ queryKey: ["mood"] });
+					queryClient.invalidateQueries({ queryKey: ["moods"] });
+					setMoodModalVisible(false);
+					setNote("");
+				},
+				onError: (error) => {
+					console.error("Error saving mood:", error);
+					Alert.alert("Error", "Could not save your mood. Please try again.");
+				},
+			}
+		);
+	};
 
-	// Animation effect when component mounts
 	useEffect(() => {
 		Animated.parallel([
 			Animated.timing(fadeAnim, {
@@ -110,50 +79,6 @@ export default function HomeScreen() {
 			}),
 		]).start();
 	}, [fadeAnim, scaleAnim]);
-
-	// Fetch mood data function - used by both initial load and focus effect
-	const fetchMoodData = async () => {
-		setIsLoading(true);
-		try {
-			const result = await fetchMoodForDate(new Date());
-			setTodayMoodEntry(result);
-		} catch (error) {
-			console.error("Error fetching mood data:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	// Refresh data when the screen comes into focus
-	useFocusEffect(
-		React.useCallback(() => {
-			fetchMoodData();
-		}, [fetchMoodForDate])
-	);
-
-	const handleSaveMood = async () => {
-		try {
-			const moodToSave = selectedMood || MoodType.HAPPY;
-			await addMoodEntry(new Date(), moodToSave, note);
-
-			setMoodModalVisible(false);
-			setNote("");
-
-			// Refresh the mood data
-			const updatedMood = await fetchMoodForDate(new Date());
-			setTodayMoodEntry(updatedMood);
-		} catch (error) {
-			console.error("Error saving mood:", error);
-			Alert.alert("Error", "Could not save your mood. Please try again.");
-		}
-	};
-
-	// Function to determine if we have a valid mood to show
-	const hasValidMoodToday = () => {
-		return todayMoodEntry !== null;
-	};
-
-	const today = format(new Date(), "EEEE, MMMM d");
 
 	return (
 		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
@@ -173,11 +98,11 @@ export default function HomeScreen() {
 							category="s1"
 							style={[styles.headerDate, { color: colors.textSecondary }]}
 						>
-							{today}
+							{formattedToday}
 						</Text>
 					</View>
 
-					{isLoading ? (
+					{isMoodLoading ? (
 						<View style={styles.loadingContainer}>
 							<Spinner size="large" status="primary" />
 							<Text
@@ -187,7 +112,7 @@ export default function HomeScreen() {
 								Loading your mood data...
 							</Text>
 						</View>
-					) : hasValidMoodToday() && todayMoodEntry ? (
+					) : moodForDate ? (
 						<Animated.View
 							style={[
 								styles.todayMoodContainer,
@@ -207,20 +132,20 @@ export default function HomeScreen() {
 								]}
 							>
 								<LinearGradient
-									colors={MOOD_STYLES[todayMoodEntry.mood].gradient}
+									colors={MOOD_METADATA[moodForDate.mood].gradient}
 									start={{ x: 0, y: 0 }}
 									end={{ x: 1, y: 1 }}
 									style={styles.todayMoodCard}
 								>
 									<Text style={styles.todayEmoji}>
-										{MOOD_EMOJIS[todayMoodEntry.mood]}
+										{MOOD_METADATA[moodForDate.mood].emoji}
 									</Text>
 									<Text category="s1" style={styles.todayMoodType}>
-										{getMoodName(todayMoodEntry.mood)}
+										{MOOD_METADATA[moodForDate.mood].name}
 									</Text>
 									<View style={styles.noteDivider} />
 									<Text category="p1" style={styles.todayMoodNote}>
-										{todayMoodEntry.note || "No note added"}
+										{moodForDate.note || "No note added"}
 									</Text>
 								</LinearGradient>
 							</View>
@@ -291,7 +216,7 @@ export default function HomeScreen() {
 
 								<View style={styles.selectedMoodContainer}>
 									<Text style={styles.selectedMoodEmoji}>
-										{selectedMood ? MOOD_EMOJIS[selectedMood] : ""}
+										{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
 									</Text>
 									<Text
 										category="s1"
@@ -302,12 +227,12 @@ export default function HomeScreen() {
 									>
 										You're feeling{" "}
 										<Text style={{ fontWeight: "600", color: colors.text }}>
-											{selectedMood ? getMoodName(selectedMood) : ""}
+											{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
 										</Text>
 									</Text>
 								</View>
 
-								{isInitialized && <HealthDataDisplay date={new Date()} />}
+								{isInitialized && <HealthDataDisplay date={today} />}
 
 								<Input
 									multiline
@@ -322,13 +247,15 @@ export default function HomeScreen() {
 									onPress={handleSaveMood}
 									style={styles.saveButton}
 									status="primary"
+									disabled={isSaving}
 								>
-									Save
+									{isSaving ? "Saving..." : "Save"}
 								</Button>
 								<Button
 									appearance="ghost"
 									status="basic"
 									onPress={() => setMoodModalVisible(false)}
+									disabled={isSaving}
 								>
 									Cancel
 								</Button>

@@ -1,26 +1,37 @@
-import React, { useState, useEffect } from "react";
-import { StyleSheet, Animated, View, SafeAreaView, ScrollView } from "react-native";
+import React, { useState, useEffect, useMemo } from "react";
+import { StyleSheet, Animated, View, SafeAreaView, ScrollView, Alert } from "react-native";
 import { Layout, Text, Spinner } from "@ui-kitten/components";
 import { startOfMonth, endOfMonth } from "date-fns";
 import { MoodType } from "shared";
-import { useFocusEffect } from "@react-navigation/native";
-
-import { useMoodStore } from "@/store/moodStore";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { Calendar } from "@/components/calendar";
+import { useMoodsByDateRange } from "@/hooks/useMoodsByDateRange";
+import { useSaveMood } from "@/hooks/useSaveMood";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function CalendarScreen() {
-	const [isLoading, setIsLoading] = useState(true);
 	const [currentMonth, setCurrentMonth] = useState(new Date());
 	const fadeAnim = React.useRef(new Animated.Value(0)).current;
 	const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
 
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
+	const queryClient = useQueryClient();
 
-	const { entries, refreshTrigger, fetchEntriesForDateRange } = useMoodStore();
-	const addMoodEntry = useMoodStore((state) => state.addMoodEntry);
+	const dateRange = useMemo(() => {
+		return {
+			start: startOfMonth(currentMonth),
+			end: endOfMonth(currentMonth),
+		};
+	}, [currentMonth]);
+
+	const { data: moods, isLoading: isMoodsLoading } = useMoodsByDateRange(
+		dateRange.start.toISOString(),
+		dateRange.end.toISOString()
+	);
+
+	const { mutate: saveMood, isPending: isSaving } = useSaveMood();
 
 	// Animation effect when component mounts
 	useEffect(() => {
@@ -38,61 +49,24 @@ export default function CalendarScreen() {
 		]).start();
 	}, [fadeAnim, scaleAnim]);
 
-	// Load current month's data
-	const loadMonthData = async (month: Date) => {
-		setIsLoading(true);
-		try {
-			const start = startOfMonth(month);
-			const end = endOfMonth(month);
-			await fetchEntriesForDateRange(start, end);
-		} catch (error) {
-			console.error("Error fetching month data:", error);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	// Initial load on mount
-	useEffect(() => {
-		// Small delay to ensure auth is set up
-		setTimeout(() => loadMonthData(currentMonth), 500);
-	}, [currentMonth]);
-
-	// Refresh data when screen comes into focus
-	useFocusEffect(
-		React.useCallback(() => {
-			const refreshData = async () => {
-				try {
-					const start = startOfMonth(currentMonth);
-					const end = endOfMonth(currentMonth);
-					await fetchEntriesForDateRange(start, end);
-				} catch (error) {
-					console.error("Error refreshing calendar data:", error);
-				}
-			};
-
-			refreshData();
-		}, [currentMonth, fetchEntriesForDateRange])
-	);
-
-	// Re-fetch when refreshTrigger changes
-	useEffect(() => {
-		const fetchAndUpdate = async () => {
-			await fetchEntriesForDateRange(startOfMonth(currentMonth), endOfMonth(currentMonth));
-		};
-
-		fetchAndUpdate();
-	}, [refreshTrigger, currentMonth, fetchEntriesForDateRange]);
-
-	const handleSaveMood = async (date: Date, mood: MoodType, note: string) => {
-		try {
-			await addMoodEntry(date, mood, note);
-
-			// Refresh the current month's data
-			await loadMonthData(currentMonth);
-		} catch (error) {
-			console.error("Error saving mood:", error);
-		}
+	const handleSaveMood = async (dateString: string, mood: MoodType, note: string) => {
+		saveMood(
+			{
+				dateString: dateString,
+				mood: mood || MoodType.HAPPY,
+				note,
+			},
+			{
+				onSuccess: () => {
+					queryClient.invalidateQueries({ queryKey: ["mood"] });
+					queryClient.invalidateQueries({ queryKey: ["moods"] });
+				},
+				onError: (error) => {
+					console.error("Error saving mood:", error);
+					Alert.alert("Error", "Could not save your mood. Please try again.");
+				},
+			}
+		);
 	};
 
 	return (
@@ -119,7 +93,7 @@ export default function CalendarScreen() {
 						</Text>
 					</View>
 
-					{isLoading ? (
+					{isMoodsLoading ? (
 						<View style={styles.loadingContainer}>
 							<Spinner size="large" status="primary" />
 							<Text
@@ -143,7 +117,13 @@ export default function CalendarScreen() {
 									},
 								]}
 							>
-								<Calendar moodEntries={entries} onSaveMood={handleSaveMood} />
+								{moods && (
+									<Calendar
+										moods={moods}
+										onSaveMood={handleSaveMood}
+										key={JSON.stringify(moods)}
+									/>
+								)}
 							</View>
 						</ScrollView>
 					)}

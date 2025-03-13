@@ -4,7 +4,7 @@ import { Text } from "@ui-kitten/components";
 import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
-import { MOOD_STYLES } from "@/constants/MoodConstants";
+import { MOOD_METADATA } from "@/constants/MoodConstants";
 import { MoodType } from "shared";
 
 interface StatsGridProps {
@@ -25,7 +25,7 @@ export const StatsGrid = ({ totalDays, happyDays, happyPercentage }: StatsGridPr
 			<View style={styles.statsRow}>
 				<View style={[styles.statCardContainer, { shadowColor: colors.text }]}>
 					<LinearGradient
-						colors={MOOD_STYLES[MoodType.NEUTRAL].gradient}
+						colors={MOOD_METADATA[MoodType.NEUTRAL].gradient}
 						start={{ x: 0, y: 0 }}
 						end={{ x: 1, y: 1 }}
 						style={styles.statCard}
@@ -41,7 +41,7 @@ export const StatsGrid = ({ totalDays, happyDays, happyPercentage }: StatsGridPr
 
 				<View style={[styles.statCardContainer, { shadowColor: colors.text }]}>
 					<LinearGradient
-						colors={MOOD_STYLES[MoodType.HAPPY].gradient}
+						colors={MOOD_METADATA[MoodType.HAPPY].gradient}
 						start={{ x: 0, y: 0 }}
 						end={{ x: 1, y: 1 }}
 						style={styles.statCard}
