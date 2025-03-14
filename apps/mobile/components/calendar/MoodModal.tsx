@@ -1,5 +1,15 @@
-import React from "react";
-import { View, StyleSheet, TouchableOpacity, Modal, ScrollView } from "react-native";
+import React, { useRef } from "react";
+import {
+	View,
+	StyleSheet,
+	TouchableOpacity,
+	Modal,
+	ScrollView,
+	Keyboard,
+	KeyboardAvoidingView,
+	Platform,
+	GestureResponderEvent,
+} from "react-native";
 import { Text, Button, Input } from "@ui-kitten/components";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
@@ -97,6 +107,7 @@ export const MoodModal = ({
 }: MoodModalProps) => {
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
+	const scrollViewRef = useRef<ScrollView>(null);
 
 	const renderSubMoodButtons = () => {
 		if (!selectedMood) return null;
@@ -136,6 +147,17 @@ export const MoodModal = ({
 		));
 	};
 
+	const dismissKeyboard = () => {
+		Keyboard.dismiss();
+	};
+
+	// This function handles touch events and only dismisses keyboard
+	// without interfering with scrolling
+	const handleContentPress = (event: GestureResponderEvent) => {
+		// Only dismiss keyboard, don't prevent event propagation
+		dismissKeyboard();
+	};
+
 	return (
 		<Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
 			<BlurView
@@ -143,93 +165,136 @@ export const MoodModal = ({
 				tint={(scheme ?? "light") === "dark" ? "dark" : "light"}
 				style={styles.modalOverlay}
 			>
-				<View
-					style={[
-						styles.modalContent,
-						{
-							backgroundColor: colors.surface,
-							shadowColor: colors.text,
-						},
-					]}
+				<KeyboardAvoidingView
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
+					style={styles.keyboardAvoidingView}
 				>
-					<View style={[styles.modalHandle, { backgroundColor: colors.subtle }]} />
+					<View
+						style={[
+							styles.modalContent,
+							{
+								backgroundColor: colors.surface,
+								shadowColor: colors.text,
+							},
+						]}
+					>
+						<View style={[styles.modalHandle, { backgroundColor: colors.subtle }]} />
 
-					{selectedDate && (
-						<Text category="h5" style={[styles.modalDate, { color: colors.text }]}>
-							{format(selectedDate, "MMMM d, yyyy")}
-						</Text>
-					)}
-
-					{viewMode === "view" ? (
-						<>
-							<View
-								style={[styles.moodDetails, { backgroundColor: colors.background }]}
-							>
-								<LinearGradient
-									colors={MOOD_METADATA[selectedMood || MoodType.HAPPY].gradient}
-									style={styles.moodDetailGradient}
-									start={{ x: 0, y: 0 }}
-									end={{ x: 1, y: 1 }}
-								>
-									<Text style={styles.moodEmoji}>
-										{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
-									</Text>
-									<Text category="h6" style={styles.moodDetailTitle}>
-										{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
-									</Text>
-
-									{note ? (
-										<>
-											<View style={styles.noteDivider} />
-											<Text style={styles.moodNote}>{note}</Text>
-										</>
-									) : null}
-								</LinearGradient>
-							</View>
-
-							{selectedDate && <HealthDataDisplay date={selectedDate} />}
-
-							<Button style={styles.modalButton} status="primary" onPress={onClose}>
-								Close
-							</Button>
-						</>
-					) : (
-						<>
-							<Text category="h5" style={[styles.modalTitle, { color: colors.text }]}>
-								How are you feeling?
+						{selectedDate && (
+							<Text category="h5" style={[styles.modalDate, { color: colors.text }]}>
+								{format(selectedDate, "MMMM d, yyyy")}
 							</Text>
+						)}
 
-							<View style={styles.moodButtonRow}>{renderMoodButtons()}</View>
-
-							{selectedMood && renderSubMoodButtons()}
-
-							{selectedDate && <HealthDataDisplay date={selectedDate} />}
-
-							<Input
-								multiline
-								textStyle={{ minHeight: 100, color: colors.text }}
-								placeholder="Any notes about your day? (optional)"
-								placeholderTextColor={colors.textSecondary}
-								value={note}
-								onChangeText={onNoteChange}
-								style={styles.noteInput}
-							/>
-
-							<Button
-								onPress={onSave}
-								style={styles.saveButton}
-								status="primary"
-								disabled={!selectedMood}
+						{viewMode === "view" ? (
+							<ScrollView
+								style={styles.scrollView}
+								contentContainerStyle={styles.scrollViewContent}
+								showsVerticalScrollIndicator={false}
 							>
-								Save
-							</Button>
+								<View
+									style={[
+										styles.moodDetails,
+										{ backgroundColor: colors.background },
+									]}
+								>
+									<LinearGradient
+										colors={
+											MOOD_METADATA[selectedMood || MoodType.HAPPY].gradient
+										}
+										style={styles.moodDetailGradient}
+										start={{ x: 0, y: 0 }}
+										end={{ x: 1, y: 1 }}
+									>
+										<Text style={styles.moodEmoji}>
+											{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
+										</Text>
+										<Text category="h6" style={styles.moodDetailTitle}>
+											{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
+										</Text>
 
-							<Button appearance="ghost" status="basic" onPress={onClose}>
-								Cancel
-							</Button>
-						</>
-					)}
-				</View>
+										{note ? (
+											<>
+												<View style={styles.noteDivider} />
+												<Text style={styles.moodNote}>{note}</Text>
+											</>
+										) : null}
+									</LinearGradient>
+								</View>
+
+								{selectedDate && <HealthDataDisplay date={selectedDate} />}
+
+								<Button
+									style={styles.modalButton}
+									status="primary"
+									onPress={onClose}
+								>
+									Close
+								</Button>
+							</ScrollView>
+						) : (
+							<ScrollView
+								ref={scrollViewRef}
+								style={styles.scrollView}
+								contentContainerStyle={styles.scrollViewContent}
+								showsVerticalScrollIndicator={false}
+								keyboardShouldPersistTaps="handled"
+								onScrollBeginDrag={dismissKeyboard}
+							>
+								<View
+									style={styles.scrollContent}
+									onStartShouldSetResponder={() => false}
+									onMoveShouldSetResponder={() => false}
+									onResponderRelease={handleContentPress}
+								>
+									<Text
+										category="h5"
+										style={[styles.modalTitle, { color: colors.text }]}
+									>
+										How are you feeling?
+									</Text>
+
+									<View style={styles.moodButtonRow}>{renderMoodButtons()}</View>
+
+									{selectedMood && renderSubMoodButtons()}
+
+									{selectedDate && <HealthDataDisplay date={selectedDate} />}
+
+									<Input
+										multiline
+										textStyle={{ minHeight: 100, color: colors.text }}
+										placeholder="Any notes about your day? (optional)"
+										placeholderTextColor={colors.textSecondary}
+										value={note}
+										onChangeText={onNoteChange}
+										style={styles.noteInput}
+										onFocus={() => {
+											// Scroll to input when focused
+											setTimeout(() => {
+												scrollViewRef.current?.scrollToEnd({
+													animated: true,
+												});
+											}, 100);
+										}}
+									/>
+
+									<Button
+										onPress={onSave}
+										style={styles.saveButton}
+										status="primary"
+										disabled={!selectedMood}
+									>
+										Save
+									</Button>
+
+									<Button appearance="ghost" status="basic" onPress={onClose}>
+										Cancel
+									</Button>
+								</View>
+							</ScrollView>
+						)}
+					</View>
+				</KeyboardAvoidingView>
 			</BlurView>
 		</Modal>
 	);
@@ -241,6 +306,10 @@ const styles = StyleSheet.create({
 		justifyContent: "flex-end",
 		zIndex: 1000,
 	},
+	keyboardAvoidingView: {
+		flex: 1,
+		justifyContent: "flex-end",
+	},
 	modalContent: {
 		borderTopLeftRadius: 28,
 		borderTopRightRadius: 28,
@@ -248,10 +317,19 @@ const styles = StyleSheet.create({
 		paddingTop: 16,
 		alignItems: "center",
 		minHeight: 320,
+		maxHeight: "90%",
 		shadowOffset: { width: 0, height: -8 },
 		shadowOpacity: 0.1,
 		shadowRadius: 12,
 		elevation: 10,
+	},
+	scrollView: {
+		width: "100%",
+	},
+	scrollViewContent: {
+		flexGrow: 1,
+		alignItems: "center",
+		paddingBottom: 20,
 	},
 	modalHandle: {
 		width: 40,
@@ -378,5 +456,9 @@ const styles = StyleSheet.create({
 		fontSize: 18,
 		color: "rgba(255, 255, 255, 0.9)",
 		marginBottom: 16,
+	},
+	scrollContent: {
+		width: "100%",
+		alignItems: "center",
 	},
 });
