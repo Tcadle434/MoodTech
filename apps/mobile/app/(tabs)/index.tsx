@@ -1,40 +1,31 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import {
-	StyleSheet,
-	View,
-	Modal as RNModal,
-	SafeAreaView,
-	Alert,
-	StatusBar,
-	Animated,
-} from "react-native";
-import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
+import { StyleSheet, View, SafeAreaView, Alert, StatusBar, Animated } from "react-native";
+import { Layout, Text, Spinner } from "@ui-kitten/components";
 import { format, parseISO } from "date-fns";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
-import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
-import { useHealthKitInit } from "@/hooks/useHealthKitInit";
-import { MOOD_METADATA } from "@/constants/MoodConstants";
+import { MOOD_METADATA, SUB_MOOD_EMOJIS, getSubMoodName } from "@/constants/MoodConstants";
 import { useMoodForDate } from "@/hooks/useMoodForDate";
 import { useSaveMood } from "@/hooks/useSaveMood";
 import { useQueryClient } from "@tanstack/react-query";
 import { MoodEmoji } from "@/components/MoodEmoji";
+import { MoodModal } from "@/components/calendar";
 
 export default function HomeScreen() {
 	const today = new Date();
 	const todayString = useMemo(() => format(today, "yyyy-MM-dd"), []);
 	const formattedToday = format(parseISO(todayString), "EEEE, MMMM d");
 
-	const isInitialized = useHealthKitInit();
 	const queryClient = useQueryClient();
 	const { data: moodForDate, isLoading: isMoodLoading } = useMoodForDate(todayString);
 	const { mutate: saveMood, isPending: isSaving } = useSaveMood();
 
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+	const [selectedSubMood, setSelectedSubMood] = useState<SubMoodType | null>(null);
 	const [note, setNote] = useState("");
 
 	const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -44,10 +35,13 @@ export default function HomeScreen() {
 	const colors = Colors[scheme ?? "light"];
 
 	const handleSaveMood = async () => {
+		console.log("selectedMood", selectedMood);
+		console.log("selectedSubMood", selectedSubMood);
 		saveMood(
 			{
 				dateString: todayString,
 				mood: selectedMood || MoodType.HAPPY,
+				subMood: selectedSubMood || undefined,
 				note,
 			},
 			{
@@ -137,16 +131,60 @@ export default function HomeScreen() {
 									end={{ x: 1, y: 1 }}
 									style={styles.todayMoodCard}
 								>
-									<Text style={styles.todayEmoji}>
-										{MOOD_METADATA[moodForDate.mood].emoji}
-									</Text>
-									<Text category="s1" style={styles.todayMoodType}>
-										{MOOD_METADATA[moodForDate.mood].name}
-									</Text>
+									{/* Main Mood Section */}
+									<View style={styles.mainMoodSection}>
+										<Text style={styles.todayEmoji}>
+											{MOOD_METADATA[moodForDate.mood].emoji}
+										</Text>
+										<Text category="s1" style={styles.todayMoodType}>
+											{MOOD_METADATA[moodForDate.mood].name}
+										</Text>
+									</View>
+
+									{/* Separator */}
 									<View style={styles.noteDivider} />
-									<Text category="p1" style={styles.todayMoodNote}>
-										{moodForDate.note || "No note added"}
-									</Text>
+
+									{/* Details Section */}
+									<View style={styles.detailsContainer}>
+										{/* Submood Section */}
+										{moodForDate.subMood && (
+											<View style={styles.detailRow}>
+												<View style={styles.detailIconContainer}>
+													<Text style={styles.detailIcon}>🔍</Text>
+												</View>
+												<View style={styles.detailContent}>
+													<Text style={styles.detailTitle}>sub-mood</Text>
+													<View style={styles.subMoodContainer}>
+														<Text style={styles.subMoodEmoji}>
+															{SUB_MOOD_EMOJIS[moodForDate.subMood]}
+														</Text>
+														<Text style={styles.subMoodText}>
+															{getSubMoodName(moodForDate.subMood)}
+														</Text>
+													</View>
+												</View>
+											</View>
+										)}
+
+										{/* Note Section */}
+										<View style={styles.detailRow}>
+											<View style={styles.detailIconContainer}>
+												<Text style={styles.detailIcon}>📝</Text>
+											</View>
+											<View style={styles.detailContent}>
+												<Text style={styles.detailTitle}>Note</Text>
+												<Text style={styles.todayMoodNote}>
+													{moodForDate.note || "No note added"}
+												</Text>
+											</View>
+										</View>
+
+										{/* Steps Section */}
+										<View style={styles.stepsSection}>
+											<View style={styles.stepsDivider} />
+											<HealthDataDisplay date={today} />
+										</View>
+									</View>
 								</LinearGradient>
 							</View>
 						</Animated.View>
@@ -184,84 +222,24 @@ export default function HomeScreen() {
 						</Animated.View>
 					)}
 
-					<RNModal
+					<MoodModal
 						visible={moodModalVisible}
-						animationType="slide"
-						transparent={true}
-						onRequestClose={() => setMoodModalVisible(false)}
-					>
-						<BlurView
-							intensity={30}
-							tint={scheme === "dark" ? "dark" : "light"}
-							style={styles.modalOverlay}
-						>
-							<View
-								style={[
-									styles.modalContent,
-									{
-										backgroundColor: colors.surface,
-										shadowColor: colors.text,
-									},
-								]}
-							>
-								<View
-									style={[styles.modalHandle, { backgroundColor: colors.subtle }]}
-								/>
-								<Text
-									category="h4"
-									style={[styles.modalTitle, { color: colors.text }]}
-								>
-									Tell us more
-								</Text>
-
-								<View style={styles.selectedMoodContainer}>
-									<Text style={styles.selectedMoodEmoji}>
-										{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
-									</Text>
-									<Text
-										category="s1"
-										style={[
-											styles.selectedMoodText,
-											{ color: colors.textSecondary },
-										]}
-									>
-										You're feeling{" "}
-										<Text style={{ fontWeight: "600", color: colors.text }}>
-											{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
-										</Text>
-									</Text>
-								</View>
-
-								{isInitialized && <HealthDataDisplay date={today} />}
-
-								<Input
-									multiline
-									textStyle={{ minHeight: 120, color: colors.text }}
-									placeholder="What happened today? (optional)"
-									placeholderTextColor={colors.textSecondary}
-									value={note}
-									onChangeText={setNote}
-									style={styles.noteInput}
-								/>
-								<Button
-									onPress={handleSaveMood}
-									style={styles.saveButton}
-									status="primary"
-									disabled={isSaving}
-								>
-									{isSaving ? "Saving..." : "Save"}
-								</Button>
-								<Button
-									appearance="ghost"
-									status="basic"
-									onPress={() => setMoodModalVisible(false)}
-									disabled={isSaving}
-								>
-									Cancel
-								</Button>
-							</View>
-						</BlurView>
-					</RNModal>
+						onClose={() => {
+							setMoodModalVisible(false);
+							setSelectedMood(null);
+							setSelectedSubMood(null);
+							setNote("");
+						}}
+						selectedDate={new Date()}
+						viewMode="add"
+						selectedMood={selectedMood}
+						selectedSubMood={selectedSubMood}
+						note={note}
+						onSave={handleSaveMood}
+						onMoodSelect={setSelectedMood}
+						onSubMoodSelect={setSelectedSubMood}
+						onNoteChange={setNote}
+					/>
 				</SafeAreaView>
 			</Animated.View>
 		</Layout>
@@ -322,23 +300,28 @@ const styles = StyleSheet.create({
 	},
 	moodRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		justifyContent: "center",
+		alignItems: "center",
 		width: "100%",
 		gap: 16,
+		paddingHorizontal: 16,
 	},
 	moodTouchable: {
-		width: 100,
-		aspectRatio: 0.75,
-		transform: [{ translateY: 0 }],
+		width: "28%",
+		minWidth: 90,
+		maxWidth: 110,
+		aspectRatio: 0.85,
+		marginBottom: 16,
 	},
 	moodCardContainer: {
 		width: "100%",
 		height: "100%",
-		borderRadius: 24,
+		borderRadius: 20,
 		overflow: "hidden",
-		shadowOffset: { width: 0, height: 8 },
+		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.15,
-		shadowRadius: 12,
+		shadowRadius: 8,
 		elevation: 5,
 	},
 	moodCard: {
@@ -346,16 +329,16 @@ const styles = StyleSheet.create({
 		height: "100%",
 		alignItems: "center",
 		justifyContent: "center",
-		padding: 16,
-		borderRadius: 24,
+		padding: 12,
+		borderRadius: 20,
 	},
 	emoji: {
-		fontSize: 44,
-		marginBottom: 12,
+		fontSize: 36,
+		marginBottom: 8,
 	},
 	moodLabel: {
 		textAlign: "center",
-		fontSize: 16,
+		fontSize: 14,
 		fontWeight: "600",
 		color: "#FFFFFF",
 		opacity: 0.9,
@@ -446,31 +429,123 @@ const styles = StyleSheet.create({
 		elevation: 8,
 	},
 	todayMoodCard: {
-		padding: 24,
+		padding: 28,
 		borderRadius: 24,
 	},
 	todayEmoji: {
-		fontSize: 60,
+		fontSize: 72,
 		marginBottom: 16,
 		alignSelf: "center",
 		color: "#FFFFFF",
 	},
 	todayMoodType: {
 		textAlign: "center",
-		marginBottom: 24,
 		fontWeight: "700",
-		fontSize: 22,
+		fontSize: 28,
 		color: "#FFFFFF",
+		textShadowColor: "rgba(0, 0, 0, 0.1)",
+		textShadowOffset: { width: 0, height: 1 },
+		textShadowRadius: 2,
 	},
 	noteDivider: {
 		height: 1,
 		width: "100%",
 		backgroundColor: "rgba(255, 255, 255, 0.2)",
-		marginBottom: 16,
+		marginBottom: 24,
+	},
+	detailsContainer: {
+		width: "100%",
+	},
+	detailRow: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+		marginBottom: 20,
+	},
+	detailIconContainer: {
+		width: 36,
+		height: 36,
+		borderRadius: 18,
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		marginRight: 16,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	detailIcon: {
+		fontSize: 18,
+	},
+	detailContent: {
+		flex: 1,
+	},
+	detailTitle: {
+		fontSize: 14,
+		fontWeight: "600",
+		color: "#FFFFFF",
+		marginBottom: 6,
+		opacity: 0.7,
+	},
+	subMoodContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	subMoodEmoji: {
+		fontSize: 20,
+		color: "#FFFFFF",
+		marginRight: 8,
+	},
+	subMoodText: {
+		fontSize: 18,
+		color: "#FFFFFF",
+		fontWeight: "500",
 	},
 	todayMoodNote: {
 		fontStyle: "italic",
+		color: "#FFFFFF",
+		lineHeight: 22,
+		fontSize: 16,
+	},
+	todaySubMoodType: {
+		fontSize: 18,
 		color: "rgba(255, 255, 255, 0.9)",
-		lineHeight: 20,
+		marginBottom: 16,
+		textAlign: "center",
+	},
+	todaySubMoodEmoji: {
+		fontSize: 18,
+		color: "rgba(255, 255, 255, 0.9)",
+		marginBottom: 16,
+		textAlign: "center",
+	},
+	mainMoodSection: {
+		width: "100%",
+		alignItems: "center",
+		marginBottom: 24,
+	},
+	stepsSection: {
+		width: "100%",
+		marginTop: 8,
+	},
+	stepsDivider: {
+		height: 1,
+		width: "100%",
+		backgroundColor: "rgba(255, 255, 255, 0.2)",
+		marginBottom: 20,
+	},
+	stepsRow: {
+		flexDirection: "row",
+		alignItems: "flex-start",
+	},
+	stepsDataContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	stepsCount: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: "#FFFFFF",
+		marginRight: 6,
+	},
+	stepsLabel: {
+		fontSize: 16,
+		color: "rgba(255, 255, 255, 0.8)",
 	},
 });

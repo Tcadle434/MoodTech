@@ -1,11 +1,13 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  ManyToOne,
+} from 'typeorm';
 import { User } from '../users/user.entity';
-
-export enum MoodType {
-  HAPPY = 'happy',
-  NEUTRAL = 'neutral',
-  SAD = 'sad',
-}
+import { MoodType, SubMoodType } from 'shared';
 
 @Entity()
 export class MoodEntry {
@@ -17,14 +19,20 @@ export class MoodEntry {
 
   @Column({
     type: 'text', // Store as text but validate against enum values
-    default: MoodType.NEUTRAL,
+    default: MoodType.HAPPY,
   })
   mood: MoodType;
+
+  @Column({
+    type: 'text',
+    nullable: true,
+  })
+  subMood?: SubMoodType;
 
   @Column({ nullable: true })
   note: string;
 
-  @ManyToOne(() => User, user => user.moodEntries)
+  @ManyToOne(() => User, (user) => user.moodEntries)
   user: User;
 
   @CreateDateColumn()

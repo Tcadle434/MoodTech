@@ -1,4 +1,4 @@
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 import { StyleProp, ViewStyle, TextStyle } from "react-native";
 import { CalendarProps } from "@ui-kitten/components";
 
@@ -6,6 +6,7 @@ export interface MoodEntry {
 	id: string;
 	date: string; // ISO date string
 	mood: MoodType;
+	subMood?: SubMoodType;
 	note?: string;
 }
 
@@ -29,8 +30,10 @@ export interface MoodModalProps {
 	selectedDate: Date | null;
 	viewMode: "add" | "view";
 	selectedMood: MoodType | null;
+	selectedSubMood: SubMoodType | null;
 	note: string;
 	onSave: () => void;
 	onMoodSelect: (mood: MoodType) => void;
+	onSubMoodSelect: (subMood: SubMoodType) => void;
 	onNoteChange: (text: string) => void;
 }

@@ -19,6 +19,8 @@ export const HealthDataDisplay = memo(
 		const isInitialized = useHealthKitInit();
 		const { data: steps = 0, isLoading, error } = useStepCount(date);
 
+		console.log("in health data display");
+
 		// Format the steps number with commas
 		const formattedSteps = useMemo(() => steps.toLocaleString(), [steps]);
 
@@ -64,18 +66,13 @@ export const HealthDataDisplay = memo(
 						"Loading health data..."
 					) : (
 						<>
-							Steps on this day:{" "}
 							<Text style={{ fontWeight: "600", color: colors.text }}>
 								{formattedSteps}
 							</Text>
+							{"  "}
+							Steps on this day
 						</>
 					)}
-				</Text>
-				<Text
-					category="c1"
-					style={{ color: colors.textSecondary, marginTop: 4, opacity: 0.7 }}
-				>
-					Date: {format(date, "yyyy-MM-dd")}
 				</Text>
 			</View>
 		);

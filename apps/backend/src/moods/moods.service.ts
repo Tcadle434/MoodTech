@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { MoodEntry, MoodType } from './mood-entry.entity';
+import { MoodEntry } from './mood-entry.entity';
 import { User } from '../users/user.entity';
-
+import { MoodType, SubMoodType } from 'shared';
 @Injectable()
 export class MoodsService {
   constructor(
@@ -55,6 +55,7 @@ export class MoodsService {
     mood: MoodType,
     user: User,
     note?: string,
+    subMood?: SubMoodType,
   ): Promise<MoodEntry> {
     // Check if entry for this date already exists
     const existingEntry = await this.findByDate(date, user.id);
@@ -62,6 +63,7 @@ export class MoodsService {
     if (existingEntry) {
       // Update existing entry
       existingEntry.mood = mood;
+      existingEntry.subMood = subMood;
       if (note !== undefined) {
         existingEntry.note = note;
       }
@@ -72,6 +74,7 @@ export class MoodsService {
     const newEntry = this.moodEntriesRepository.create({
       date,
       mood,
+      subMood,
       note,
       user,
     });

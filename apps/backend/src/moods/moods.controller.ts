@@ -1,14 +1,14 @@
-import { 
-  Controller, 
-  Get, 
-  Post, 
-  Put, 
-  Delete, 
-  Param, 
-  Body, 
-  UseGuards, 
-  Request, 
-  Query 
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+  Query,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { MoodsService } from './moods.service';
@@ -48,10 +48,7 @@ export class MoodsController {
   }
 
   @Get(':id')
-  async findOne(
-    @Param('id') id: string,
-    @Request() req,
-  ): Promise<MoodEntry> {
+  async findOne(@Param('id') id: string, @Request() req): Promise<MoodEntry> {
     return this.moodsService.findOne(id, req.user.id);
   }
 
@@ -60,10 +57,15 @@ export class MoodsController {
     @Body() createMoodDto: CreateMoodDto,
     @Request() req,
   ): Promise<MoodEntry> {
-    console.log('Creating mood entry:', createMoodDto, 'for user ID:', req.user.id);
-    const { date, mood, note } = createMoodDto;
+    console.log(
+      'Creating mood entry:',
+      createMoodDto,
+      'for user ID:',
+      req.user.id,
+    );
+    const { date, mood, note, subMood } = createMoodDto;
     const user = await this.usersService.findOne(req.user.id);
-    return this.moodsService.create(date, mood, user, note);
+    return this.moodsService.create(date, mood, user, note, subMood);
   }
 
   @Put(':id')
@@ -76,10 +78,7 @@ export class MoodsController {
   }
 
   @Delete(':id')
-  async remove(
-    @Param('id') id: string,
-    @Request() req,
-  ): Promise<void> {
+  async remove(@Param('id') id: string, @Request() req): Promise<void> {
     return this.moodsService.remove(id, req.user.id);
   }
 }

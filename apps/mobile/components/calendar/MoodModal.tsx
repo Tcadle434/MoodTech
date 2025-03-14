@@ -1,16 +1,33 @@
-import React from "react";
-import { View, StyleSheet, TouchableOpacity, Modal } from "react-native";
+import React, { useRef, useEffect } from "react";
+import {
+	View,
+	StyleSheet,
+	TouchableOpacity,
+	Modal,
+	ScrollView,
+	Keyboard,
+	KeyboardAvoidingView,
+	Platform,
+	GestureResponderEvent,
+	PanResponder,
+	Animated,
+} from "react-native";
 import { Text, Button, Input } from "@ui-kitten/components";
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { format } from "date-fns";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 import { MoodModalProps } from "@/types/calendar";
-import { MOOD_METADATA, getMoodColor } from "@/constants/MoodConstants";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
+import {
+	MOOD_METADATA,
+	getMoodColor,
+	getSubMoodName,
+	SUB_MOOD_EMOJIS,
+} from "@/constants/MoodConstants";
 
 const MoodButton = ({
 	mood,
@@ -46,19 +63,132 @@ const MoodButton = ({
 	);
 };
 
+const SubMoodButton = ({
+	subMood,
+	isSelected,
+	onPress,
+}: {
+	subMood: SubMoodType;
+	isSelected: boolean;
+	onPress: () => void;
+}) => {
+	const scheme = useColorScheme();
+	const colors = Colors[scheme ?? "light"];
+
+	return (
+		<TouchableOpacity
+			style={[
+				styles.subMoodButton,
+				{
+					borderColor: isSelected ? colors.border : colors.subtle,
+					backgroundColor: isSelected ? `${colors.border}20` : undefined,
+				},
+				isSelected && styles.selectedSubMoodButton,
+			]}
+			activeOpacity={0.7}
+			onPress={onPress}
+		>
+			<Text style={styles.subMoodButtonEmoji}>{SUB_MOOD_EMOJIS[subMood]}</Text>
+			<Text style={{ color: colors.text }}>{getSubMoodName(subMood)}</Text>
+		</TouchableOpacity>
+	);
+};
+
 export const MoodModal = ({
 	visible,
 	onClose,
 	selectedDate,
 	viewMode,
 	selectedMood,
+	selectedSubMood,
 	note,
 	onSave,
 	onMoodSelect,
+	onSubMoodSelect,
 	onNoteChange,
 }: MoodModalProps) => {
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
+	const scrollViewRef = useRef<ScrollView>(null);
+	const panY = useRef(new Animated.Value(0)).current;
+	const translateY = panY.interpolate({
+		inputRange: [-1, 0, 1],
+		outputRange: [0, 0, 1],
+	});
+
+	const resetPositionAnim = Animated.timing(panY, {
+		toValue: 0,
+		duration: 300,
+		useNativeDriver: true,
+	});
+
+	const closeAnim = Animated.timing(panY, {
+		toValue: 500,
+		duration: 100,
+		useNativeDriver: true,
+	});
+
+	const panResponder = useRef(
+		PanResponder.create({
+			onStartShouldSetPanResponder: () => true,
+			onMoveShouldSetPanResponder: (_, gestureState) => {
+				// Only respond to vertical gestures
+				return Math.abs(gestureState.dy) > Math.abs(gestureState.dx * 3);
+			},
+			onPanResponderGrant: () => {
+				// When the gesture starts, stop any animations that may be in progress
+				panY.extractOffset();
+			},
+			onPanResponderMove: (_, gestureState) => {
+				// Only allow downward swipes
+				if (gestureState.dy > 0) {
+					panY.setValue(gestureState.dy);
+				}
+			},
+			onPanResponderRelease: (_, gestureState) => {
+				panY.flattenOffset();
+				// If the swipe is fast or long enough, close the modal
+				if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+					closeAnim.start(() => onClose());
+				} else {
+					resetPositionAnim.start();
+				}
+			},
+		})
+	).current;
+
+	useEffect(() => {
+		if (visible) {
+			resetPositionAnim.start();
+		}
+	}, [visible]);
+
+	const renderSubMoodButtons = () => {
+		if (!selectedMood) return null;
+
+		const subMoods = MOOD_METADATA[selectedMood].subMoods;
+		return (
+			<View style={styles.subMoodSection}>
+				<Text category="h6" style={[styles.subMoodTitle, { color: colors.text }]}>
+					More specifically...
+				</Text>
+				<ScrollView
+					horizontal
+					showsHorizontalScrollIndicator={false}
+					contentContainerStyle={styles.subMoodScrollContent}
+				>
+					{subMoods.map((subMood) => (
+						<SubMoodButton
+							key={subMood}
+							subMood={subMood}
+							isSelected={selectedSubMood === subMood}
+							onPress={() => onSubMoodSelect(subMood)}
+						/>
+					))}
+				</ScrollView>
+			</View>
+		);
+	};
 
 	const renderMoodButtons = () => {
 		return Object.values(MoodType).map((mood) => (
@@ -71,6 +201,17 @@ export const MoodModal = ({
 		));
 	};
 
+	const dismissKeyboard = () => {
+		Keyboard.dismiss();
+	};
+
+	// This function handles touch events and only dismisses keyboard
+	// without interfering with scrolling
+	const handleContentPress = (event: GestureResponderEvent) => {
+		// Only dismiss keyboard, don't prevent event propagation
+		dismissKeyboard();
+	};
+
 	return (
 		<Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
 			<BlurView
@@ -78,91 +219,141 @@ export const MoodModal = ({
 				tint={(scheme ?? "light") === "dark" ? "dark" : "light"}
 				style={styles.modalOverlay}
 			>
-				<View
-					style={[
-						styles.modalContent,
-						{
-							backgroundColor: colors.surface,
-							shadowColor: colors.text,
-						},
-					]}
+				<KeyboardAvoidingView
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
+					style={styles.keyboardAvoidingView}
 				>
-					<View style={[styles.modalHandle, { backgroundColor: colors.subtle }]} />
-
-					{selectedDate && (
-						<Text category="h5" style={[styles.modalDate, { color: colors.text }]}>
-							{format(selectedDate, "MMMM d, yyyy")}
-						</Text>
-					)}
-
-					{viewMode === "view" ? (
-						<>
+					<Animated.View
+						style={[
+							styles.modalContent,
+							{
+								backgroundColor: colors.surface,
+								shadowColor: colors.text,
+								transform: [{ translateY }],
+							},
+						]}
+					>
+						<View {...panResponder.panHandlers} style={styles.handleContainer}>
 							<View
-								style={[styles.moodDetails, { backgroundColor: colors.background }]}
-							>
-								<LinearGradient
-									colors={MOOD_METADATA[selectedMood || MoodType.HAPPY].gradient}
-									style={styles.moodDetailGradient}
-									start={{ x: 0, y: 0 }}
-									end={{ x: 1, y: 1 }}
-								>
-									<Text style={styles.moodEmoji}>
-										{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
-									</Text>
-									<Text category="h6" style={styles.moodDetailTitle}>
-										{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
-									</Text>
-
-									{note ? (
-										<>
-											<View style={styles.noteDivider} />
-											<Text style={styles.moodNote}>{note}</Text>
-										</>
-									) : null}
-								</LinearGradient>
-							</View>
-
-							{selectedDate && (
-								<HealthDataDisplay date={new Date(selectedDate.getTime())} />
-							)}
-
-							<Button style={styles.modalButton} status="primary" onPress={onClose}>
-								Close
-							</Button>
-						</>
-					) : (
-						<>
-							<Text category="h5" style={[styles.modalTitle, { color: colors.text }]}>
-								How were you feeling?
-							</Text>
-
-							<View style={styles.moodButtonRow}>{renderMoodButtons()}</View>
-
-							<Input
-								multiline
-								textStyle={{ minHeight: 100, color: colors.text }}
-								placeholder="Any notes about your day? (optional)"
-								placeholderTextColor={colors.textSecondary}
-								value={note}
-								onChangeText={onNoteChange}
-								style={styles.noteInput}
+								style={[styles.modalHandle, { backgroundColor: colors.subtle }]}
 							/>
+						</View>
 
-							<Button
-								onPress={onSave}
-								style={styles.saveButton}
-								status="primary"
-								disabled={!selectedMood}
+						{selectedDate && (
+							<Text category="h5" style={[styles.modalDate, { color: colors.text }]}>
+								{format(selectedDate, "MMMM d, yyyy")}
+							</Text>
+						)}
+
+						{viewMode === "view" ? (
+							<ScrollView
+								style={styles.scrollView}
+								contentContainerStyle={styles.scrollViewContent}
+								showsVerticalScrollIndicator={false}
 							>
-								Save
-							</Button>
+								<View
+									style={[
+										styles.moodDetails,
+										{ backgroundColor: colors.background },
+									]}
+								>
+									<LinearGradient
+										colors={
+											MOOD_METADATA[selectedMood || MoodType.HAPPY].gradient
+										}
+										style={styles.moodDetailGradient}
+										start={{ x: 0, y: 0 }}
+										end={{ x: 1, y: 1 }}
+									>
+										<Text style={styles.moodEmoji}>
+											{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
+										</Text>
+										<Text category="h6" style={styles.moodDetailTitle}>
+											{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
+										</Text>
 
-							<Button appearance="ghost" status="basic" onPress={onClose}>
-								Cancel
-							</Button>
-						</>
-					)}
-				</View>
+										{note ? (
+											<>
+												<View style={styles.noteDivider} />
+												<Text style={styles.moodNote}>{note}</Text>
+											</>
+										) : null}
+									</LinearGradient>
+								</View>
+
+								{selectedDate && <HealthDataDisplay date={selectedDate} />}
+
+								<Button
+									style={styles.modalButton}
+									status="primary"
+									onPress={onClose}
+								>
+									Close
+								</Button>
+							</ScrollView>
+						) : (
+							<ScrollView
+								ref={scrollViewRef}
+								style={styles.scrollView}
+								contentContainerStyle={styles.scrollViewContent}
+								showsVerticalScrollIndicator={false}
+								keyboardShouldPersistTaps="handled"
+								onScrollBeginDrag={dismissKeyboard}
+							>
+								<View
+									style={styles.scrollContent}
+									onStartShouldSetResponder={() => false}
+									onMoveShouldSetResponder={() => false}
+									onResponderRelease={handleContentPress}
+								>
+									<Text
+										category="h5"
+										style={[styles.modalTitle, { color: colors.text }]}
+									>
+										How are you feeling?
+									</Text>
+
+									<View style={styles.moodButtonRow}>{renderMoodButtons()}</View>
+
+									{selectedMood && renderSubMoodButtons()}
+
+									{selectedDate && <HealthDataDisplay date={selectedDate} />}
+
+									<Input
+										multiline
+										textStyle={{ minHeight: 100, color: colors.text }}
+										placeholder="Any notes about your day? (optional)"
+										placeholderTextColor={colors.textSecondary}
+										value={note}
+										onChangeText={onNoteChange}
+										style={styles.noteInput}
+										onFocus={() => {
+											// Scroll to input when focused
+											setTimeout(() => {
+												scrollViewRef.current?.scrollToEnd({
+													animated: true,
+												});
+											}, 100);
+										}}
+									/>
+
+									<Button
+										onPress={onSave}
+										style={styles.saveButton}
+										status="primary"
+										disabled={!selectedMood}
+									>
+										Save
+									</Button>
+
+									<Button appearance="ghost" status="basic" onPress={onClose}>
+										Cancel
+									</Button>
+								</View>
+							</ScrollView>
+						)}
+					</Animated.View>
+				</KeyboardAvoidingView>
 			</BlurView>
 		</Modal>
 	);
@@ -174,6 +365,10 @@ const styles = StyleSheet.create({
 		justifyContent: "flex-end",
 		zIndex: 1000,
 	},
+	keyboardAvoidingView: {
+		flex: 1,
+		justifyContent: "flex-end",
+	},
 	modalContent: {
 		borderTopLeftRadius: 28,
 		borderTopRightRadius: 28,
@@ -181,10 +376,19 @@ const styles = StyleSheet.create({
 		paddingTop: 16,
 		alignItems: "center",
 		minHeight: 320,
+		maxHeight: "90%",
 		shadowOffset: { width: 0, height: -8 },
 		shadowOpacity: 0.1,
 		shadowRadius: 12,
 		elevation: 10,
+	},
+	scrollView: {
+		width: "100%",
+	},
+	scrollViewContent: {
+		flexGrow: 1,
+		alignItems: "center",
+		paddingBottom: 20,
 	},
 	modalHandle: {
 		width: 40,
@@ -193,10 +397,11 @@ const styles = StyleSheet.create({
 		marginBottom: 24,
 	},
 	modalDate: {
-		marginBottom: 24,
-		fontSize: 22,
+		marginBottom: 12,
+		fontSize: 16,
 		fontWeight: "600",
 		textAlign: "center",
+		opacity: 0.7,
 	},
 	modalTitle: {
 		marginBottom: 24,
@@ -207,15 +412,44 @@ const styles = StyleSheet.create({
 	moodButtonRow: {
 		flexDirection: "row",
 		justifyContent: "space-between",
+		flexWrap: "wrap",
 		width: "100%",
 		marginBottom: 24,
+		gap: 6,
 	},
 	moodButton: {
-		padding: 16,
+		padding: 4,
 		alignItems: "center",
 		borderWidth: 1,
 		borderRadius: 16,
 		width: "30%",
+	},
+	subMoodSection: {
+		width: "100%",
+		marginBottom: 24,
+	},
+	subMoodTitle: {
+		marginBottom: 16,
+		fontSize: 18,
+		fontWeight: "600",
+	},
+	subMoodScrollContent: {
+		paddingHorizontal: 4,
+		gap: 12,
+	},
+	subMoodButton: {
+		padding: 12,
+		alignItems: "center",
+		borderWidth: 1,
+		borderRadius: 12,
+		minWidth: 100,
+	},
+	selectedSubMoodButton: {
+		borderWidth: 2,
+	},
+	subMoodButtonEmoji: {
+		fontSize: 24,
+		marginBottom: 6,
 	},
 	selectedMoodButton: {
 		borderWidth: 2,
@@ -226,7 +460,7 @@ const styles = StyleSheet.create({
 	},
 	noteInput: {
 		width: "100%",
-		marginBottom: 24,
+		marginBottom: 12,
 		borderRadius: 16,
 	},
 	saveButton: {
@@ -257,7 +491,7 @@ const styles = StyleSheet.create({
 		color: "#FFFFFF",
 	},
 	moodDetailTitle: {
-		marginBottom: 16,
+		marginBottom: 8,
 		fontSize: 22,
 		fontWeight: "700",
 		color: "#FFFFFF",
@@ -276,5 +510,19 @@ const styles = StyleSheet.create({
 	modalButton: {
 		marginTop: 8,
 		width: "100%",
+	},
+	subMoodDetailText: {
+		fontSize: 18,
+		color: "rgba(255, 255, 255, 0.9)",
+		marginBottom: 16,
+	},
+	scrollContent: {
+		width: "100%",
+		alignItems: "center",
+	},
+	handleContainer: {
+		width: "100%",
+		alignItems: "center",
+		paddingVertical: 10,
 	},
 });

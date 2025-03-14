@@ -25,7 +25,7 @@ export const StatsGrid = ({ totalDays, happyDays, happyPercentage }: StatsGridPr
 			<View style={styles.statsRow}>
 				<View style={[styles.statCardContainer, { shadowColor: colors.text }]}>
 					<LinearGradient
-						colors={MOOD_METADATA[MoodType.NEUTRAL].gradient}
+						colors={MOOD_METADATA[MoodType.HAPPY].gradient}
 						start={{ x: 0, y: 0 }}
 						end={{ x: 1, y: 1 }}
 						style={styles.statCard}

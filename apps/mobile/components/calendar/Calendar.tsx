@@ -2,7 +2,7 @@ import React, { useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { Calendar as UICalendar } from "@ui-kitten/components";
 import { format } from "date-fns";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 import { MoodEntry } from "@/types/calendar";
 import { CalendarDayCell } from "./CalendarDayCell";
 import { MoodModal } from "./MoodModal";
@@ -20,6 +20,7 @@ export const Calendar = ({ moods, onSaveMood }: CalendarProps) => {
 	const [modalVisible, setModalVisible] = useState(false);
 	const [modalMode, setModalMode] = useState<"add" | "view">("add");
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+	const [selectedSubMood, setSelectedSubMood] = useState<SubMoodType | null>(null);
 	const [note, setNote] = useState("");
 
 	const handleDayPress = useCallback(
@@ -79,9 +80,11 @@ export const Calendar = ({ moods, onSaveMood }: CalendarProps) => {
 				selectedDate={selectedDate}
 				viewMode={modalMode}
 				selectedMood={selectedMood}
+				selectedSubMood={selectedSubMood}
 				note={note}
 				onSave={handleSave}
 				onMoodSelect={setSelectedMood}
+				onSubMoodSelect={setSelectedSubMood}
 				onNoteChange={setNote}
 			/>
 		</View>
