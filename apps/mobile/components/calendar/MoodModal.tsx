@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import {
 	View,
 	StyleSheet,
@@ -9,6 +9,8 @@ import {
 	KeyboardAvoidingView,
 	Platform,
 	GestureResponderEvent,
+	PanResponder,
+	Animated,
 } from "react-native";
 import { Text, Button, Input } from "@ui-kitten/components";
 import { BlurView } from "expo-blur";
@@ -108,6 +110,58 @@ export const MoodModal = ({
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
 	const scrollViewRef = useRef<ScrollView>(null);
+	const panY = useRef(new Animated.Value(0)).current;
+	const translateY = panY.interpolate({
+		inputRange: [-1, 0, 1],
+		outputRange: [0, 0, 1],
+	});
+
+	const resetPositionAnim = Animated.timing(panY, {
+		toValue: 0,
+		duration: 300,
+		useNativeDriver: true,
+	});
+
+	const closeAnim = Animated.timing(panY, {
+		toValue: 500,
+		duration: 100,
+		useNativeDriver: true,
+	});
+
+	const panResponder = useRef(
+		PanResponder.create({
+			onStartShouldSetPanResponder: () => true,
+			onMoveShouldSetPanResponder: (_, gestureState) => {
+				// Only respond to vertical gestures
+				return Math.abs(gestureState.dy) > Math.abs(gestureState.dx * 3);
+			},
+			onPanResponderGrant: () => {
+				// When the gesture starts, stop any animations that may be in progress
+				panY.extractOffset();
+			},
+			onPanResponderMove: (_, gestureState) => {
+				// Only allow downward swipes
+				if (gestureState.dy > 0) {
+					panY.setValue(gestureState.dy);
+				}
+			},
+			onPanResponderRelease: (_, gestureState) => {
+				panY.flattenOffset();
+				// If the swipe is fast or long enough, close the modal
+				if (gestureState.dy > 100 || gestureState.vy > 0.5) {
+					closeAnim.start(() => onClose());
+				} else {
+					resetPositionAnim.start();
+				}
+			},
+		})
+	).current;
+
+	useEffect(() => {
+		if (visible) {
+			resetPositionAnim.start();
+		}
+	}, [visible]);
 
 	const renderSubMoodButtons = () => {
 		if (!selectedMood) return null;
@@ -169,16 +223,21 @@ export const MoodModal = ({
 					behavior={Platform.OS === "ios" ? "padding" : "height"}
 					style={styles.keyboardAvoidingView}
 				>
-					<View
+					<Animated.View
 						style={[
 							styles.modalContent,
 							{
 								backgroundColor: colors.surface,
 								shadowColor: colors.text,
+								transform: [{ translateY }],
 							},
 						]}
 					>
-						<View style={[styles.modalHandle, { backgroundColor: colors.subtle }]} />
+						<View {...panResponder.panHandlers} style={styles.handleContainer}>
+							<View
+								style={[styles.modalHandle, { backgroundColor: colors.subtle }]}
+							/>
+						</View>
 
 						{selectedDate && (
 							<Text category="h5" style={[styles.modalDate, { color: colors.text }]}>
@@ -293,7 +352,7 @@ export const MoodModal = ({
 								</View>
 							</ScrollView>
 						)}
-					</View>
+					</Animated.View>
 				</KeyboardAvoidingView>
 			</BlurView>
 		</Modal>
@@ -460,5 +519,10 @@ const styles = StyleSheet.create({
 	scrollContent: {
 		width: "100%",
 		alignItems: "center",
+	},
+	handleContainer: {
+		width: "100%",
+		alignItems: "center",
+		paddingVertical: 10,
 	},
 });
