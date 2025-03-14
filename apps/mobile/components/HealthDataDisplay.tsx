@@ -66,18 +66,13 @@ export const HealthDataDisplay = memo(
 						"Loading health data..."
 					) : (
 						<>
-							Steps on this day:{" "}
 							<Text style={{ fontWeight: "600", color: colors.text }}>
 								{formattedSteps}
 							</Text>
+							{"  "}
+							Steps on this day
 						</>
 					)}
-				</Text>
-				<Text
-					category="c1"
-					style={{ color: colors.textSecondary, marginTop: 4, opacity: 0.7 }}
-				>
-					Date: {format(date, "yyyy-MM-dd")}
 				</Text>
 			</View>
 		);

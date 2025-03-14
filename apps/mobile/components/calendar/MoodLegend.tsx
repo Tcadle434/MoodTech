@@ -17,7 +17,7 @@ export const MoodLegend = () => {
 			<Text category="s1" style={[styles.title, { color: colors.text }]}>
 				Mood Legend
 			</Text>
-			<View style={styles.legendItems}>
+			<View style={styles.legendGrid}>
 				{Object.values(MoodType).map((mood) => (
 					<View key={mood} style={styles.legendItem}>
 						<LinearGradient
@@ -46,18 +46,22 @@ const styles = StyleSheet.create({
 		marginBottom: 12,
 		fontWeight: "600",
 	},
-	legendItems: {
-		gap: 8,
+	legendGrid: {
+		flexDirection: "row",
+		flexWrap: "wrap",
+		justifyContent: "space-between",
 	},
 	legendItem: {
+		width: "48%",
 		flexDirection: "row",
 		alignItems: "center",
-		gap: 12,
+		marginBottom: 12,
 	},
 	colorIndicator: {
 		width: 24,
 		height: 24,
 		borderRadius: 12,
+		marginRight: 8,
 	},
 	legendText: {
 		fontSize: 14,
