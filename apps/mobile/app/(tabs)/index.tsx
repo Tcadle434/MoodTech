@@ -17,7 +17,7 @@ import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 import { useHealthKitInit } from "@/hooks/useHealthKitInit";
-import { MOOD_METADATA, getSubMoodName } from "@/constants/MoodConstants";
+import { MOOD_METADATA, SUB_MOOD_EMOJIS, getSubMoodName } from "@/constants/MoodConstants";
 import { useMoodForDate } from "@/hooks/useMoodForDate";
 import { useSaveMood } from "@/hooks/useSaveMood";
 import { useQueryClient } from "@tanstack/react-query";
@@ -46,6 +46,8 @@ export default function HomeScreen() {
 	const colors = Colors[scheme ?? "light"];
 
 	const handleSaveMood = async () => {
+		console.log("selectedMood", selectedMood);
+		console.log("selectedSubMood", selectedSubMood);
 		saveMood(
 			{
 				dateString: todayString,
@@ -147,9 +149,14 @@ export default function HomeScreen() {
 										{MOOD_METADATA[moodForDate.mood].name}
 									</Text>
 									{moodForDate.subMood && (
-										<Text style={styles.todaySubMoodType}>
-											{getSubMoodName(moodForDate.subMood)}
-										</Text>
+										<View style={styles.subMoodContainer}>
+											<Text style={styles.todaySubMoodType}>
+												{getSubMoodName(moodForDate.subMood)}
+											</Text>
+											<Text style={styles.todaySubMoodEmoji}>
+												{SUB_MOOD_EMOJIS[moodForDate.subMood]}
+											</Text>
+										</View>
 									)}
 									<View style={styles.noteDivider} />
 									<Text category="p1" style={styles.todayMoodNote}>
@@ -210,85 +217,6 @@ export default function HomeScreen() {
 						onSubMoodSelect={setSelectedSubMood}
 						onNoteChange={setNote}
 					/>
-
-					{/* <RNModal
-						visible={moodModalVisible}
-						animationType="slide"
-						transparent={true}
-						onRequestClose={() => setMoodModalVisible(false)}
-					>
-						<BlurView
-							intensity={30}
-							tint={scheme === "dark" ? "dark" : "light"}
-							style={styles.modalOverlay}
-						>
-							<View
-								style={[
-									styles.modalContent,
-									{
-										backgroundColor: colors.surface,
-										shadowColor: colors.text,
-									},
-								]}
-							>
-								<View
-									style={[styles.modalHandle, { backgroundColor: colors.subtle }]}
-								/>
-								<Text
-									category="h4"
-									style={[styles.modalTitle, { color: colors.text }]}
-								>
-									Tell us more
-								</Text>
-
-								<View style={styles.selectedMoodContainer}>
-									<Text style={styles.selectedMoodEmoji}>
-										{selectedMood ? MOOD_METADATA[selectedMood].emoji : ""}
-									</Text>
-									<Text
-										category="s1"
-										style={[
-											styles.selectedMoodText,
-											{ color: colors.textSecondary },
-										]}
-									>
-										You're feeling{" "}
-										<Text style={{ fontWeight: "600", color: colors.text }}>
-											{selectedMood ? MOOD_METADATA[selectedMood].name : ""}
-										</Text>
-									</Text>
-								</View>
-
-								{isInitialized && <HealthDataDisplay date={today} />}
-
-								<Input
-									multiline
-									textStyle={{ minHeight: 120, color: colors.text }}
-									placeholder="What happened today? (optional)"
-									placeholderTextColor={colors.textSecondary}
-									value={note}
-									onChangeText={setNote}
-									style={styles.noteInput}
-								/>
-								<Button
-									onPress={handleSaveMood}
-									style={styles.saveButton}
-									status="primary"
-									disabled={isSaving}
-								>
-									{isSaving ? "Saving..." : "Save"}
-								</Button>
-								<Button
-									appearance="ghost"
-									status="basic"
-									onPress={() => setMoodModalVisible(false)}
-									disabled={isSaving}
-								>
-									Cancel
-								</Button>
-							</View>
-						</BlurView>
-					</RNModal> */}
 				</SafeAreaView>
 			</Animated.View>
 		</Layout>
@@ -506,6 +434,17 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 	},
 	todaySubMoodType: {
+		fontSize: 18,
+		color: "rgba(255, 255, 255, 0.9)",
+		marginBottom: 16,
+		textAlign: "center",
+	},
+	subMoodContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	todaySubMoodEmoji: {
 		fontSize: 18,
 		color: "rgba(255, 255, 255, 0.9)",
 		marginBottom: 16,
