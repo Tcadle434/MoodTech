@@ -10,18 +10,19 @@ import {
 } from "react-native";
 import { Layout, Text, Button, Input, Spinner } from "@ui-kitten/components";
 import { format, parseISO } from "date-fns";
-import { MoodType } from "shared";
+import { MoodType, SubMoodType } from "shared";
 import { Colors } from "@/constants/Colors";
 import { LinearGradient } from "expo-linear-gradient";
 import { BlurView } from "expo-blur";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { HealthDataDisplay } from "@/components/HealthDataDisplay";
 import { useHealthKitInit } from "@/hooks/useHealthKitInit";
-import { MOOD_METADATA } from "@/constants/MoodConstants";
+import { MOOD_METADATA, getSubMoodName } from "@/constants/MoodConstants";
 import { useMoodForDate } from "@/hooks/useMoodForDate";
 import { useSaveMood } from "@/hooks/useSaveMood";
 import { useQueryClient } from "@tanstack/react-query";
 import { MoodEmoji } from "@/components/MoodEmoji";
+import { MoodModal } from "@/components/calendar";
 
 export default function HomeScreen() {
 	const today = new Date();
@@ -35,6 +36,7 @@ export default function HomeScreen() {
 
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
+	const [selectedSubMood, setSelectedSubMood] = useState<SubMoodType | null>(null);
 	const [note, setNote] = useState("");
 
 	const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -48,6 +50,7 @@ export default function HomeScreen() {
 			{
 				dateString: todayString,
 				mood: selectedMood || MoodType.HAPPY,
+				subMood: selectedSubMood || undefined,
 				note,
 			},
 			{
@@ -143,6 +146,11 @@ export default function HomeScreen() {
 									<Text category="s1" style={styles.todayMoodType}>
 										{MOOD_METADATA[moodForDate.mood].name}
 									</Text>
+									{moodForDate.subMood && (
+										<Text style={styles.todaySubMoodType}>
+											{getSubMoodName(moodForDate.subMood)}
+										</Text>
+									)}
 									<View style={styles.noteDivider} />
 									<Text category="p1" style={styles.todayMoodNote}>
 										{moodForDate.note || "No note added"}
@@ -184,7 +192,26 @@ export default function HomeScreen() {
 						</Animated.View>
 					)}
 
-					<RNModal
+					<MoodModal
+						visible={moodModalVisible}
+						onClose={() => {
+							setMoodModalVisible(false);
+							setSelectedMood(null);
+							setSelectedSubMood(null);
+							setNote("");
+						}}
+						selectedDate={new Date()}
+						viewMode="add"
+						selectedMood={selectedMood}
+						selectedSubMood={selectedSubMood}
+						note={note}
+						onSave={handleSaveMood}
+						onMoodSelect={setSelectedMood}
+						onSubMoodSelect={setSelectedSubMood}
+						onNoteChange={setNote}
+					/>
+
+					{/* <RNModal
 						visible={moodModalVisible}
 						animationType="slide"
 						transparent={true}
@@ -261,7 +288,7 @@ export default function HomeScreen() {
 								</Button>
 							</View>
 						</BlurView>
-					</RNModal>
+					</RNModal> */}
 				</SafeAreaView>
 			</Animated.View>
 		</Layout>
@@ -322,23 +349,28 @@ const styles = StyleSheet.create({
 	},
 	moodRow: {
 		flexDirection: "row",
+		flexWrap: "wrap",
 		justifyContent: "center",
+		alignItems: "center",
 		width: "100%",
 		gap: 16,
+		paddingHorizontal: 16,
 	},
 	moodTouchable: {
-		width: 100,
-		aspectRatio: 0.75,
-		transform: [{ translateY: 0 }],
+		width: "28%",
+		minWidth: 90,
+		maxWidth: 110,
+		aspectRatio: 0.85,
+		marginBottom: 16,
 	},
 	moodCardContainer: {
 		width: "100%",
 		height: "100%",
-		borderRadius: 24,
+		borderRadius: 20,
 		overflow: "hidden",
-		shadowOffset: { width: 0, height: 8 },
+		shadowOffset: { width: 0, height: 4 },
 		shadowOpacity: 0.15,
-		shadowRadius: 12,
+		shadowRadius: 8,
 		elevation: 5,
 	},
 	moodCard: {
@@ -346,16 +378,16 @@ const styles = StyleSheet.create({
 		height: "100%",
 		alignItems: "center",
 		justifyContent: "center",
-		padding: 16,
-		borderRadius: 24,
+		padding: 12,
+		borderRadius: 20,
 	},
 	emoji: {
-		fontSize: 44,
-		marginBottom: 12,
+		fontSize: 36,
+		marginBottom: 8,
 	},
 	moodLabel: {
 		textAlign: "center",
-		fontSize: 16,
+		fontSize: 14,
 		fontWeight: "600",
 		color: "#FFFFFF",
 		opacity: 0.9,
@@ -472,5 +504,11 @@ const styles = StyleSheet.create({
 		fontStyle: "italic",
 		color: "rgba(255, 255, 255, 0.9)",
 		lineHeight: 20,
+	},
+	todaySubMoodType: {
+		fontSize: 18,
+		color: "rgba(255, 255, 255, 0.9)",
+		marginBottom: 16,
+		textAlign: "center",
 	},
 });

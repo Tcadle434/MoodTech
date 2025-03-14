@@ -19,6 +19,8 @@ export const HealthDataDisplay = memo(
 		const isInitialized = useHealthKitInit();
 		const { data: steps = 0, isLoading, error } = useStepCount(date);
 
+		console.log("in health data display");
+
 		// Format the steps number with commas
 		const formattedSteps = useMemo(() => steps.toLocaleString(), [steps]);
 
