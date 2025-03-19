@@ -85,19 +85,13 @@ export const MoodCard = ({
 						{/* Submood section */}
 						{subMood && (
 							<View style={styles.detailRow}>
-								<View
-									style={[
-										styles.detailIconContainer,
-										{ backgroundColor: iconBackground },
-									]}
-								>
+								<View style={styles.labelContainer}>
 									<Feather
 										name="search"
-										size={16}
-										color={MOOD_METADATA[mood].text}
+										size={14}
+										color={`${MOOD_METADATA[mood].text}80`}
+										style={styles.labelIcon}
 									/>
-								</View>
-								<View style={styles.detailContent}>
 									<Text
 										style={[
 											styles.detailLabel,
@@ -106,38 +100,33 @@ export const MoodCard = ({
 									>
 										Sub-mood
 									</Text>
-									<View style={styles.detailValue}>
-										<Text style={styles.subMoodEmoji}>
-											{SUB_MOOD_EMOJIS[subMood]}
-										</Text>
-										<Text
-											style={[
-												styles.subMoodText,
-												{ color: MOOD_METADATA[mood].text },
-											]}
-										>
-											{getSubMoodName(subMood)}
-										</Text>
-									</View>
+								</View>
+
+								<View style={styles.valueContainer}>
+									<Text style={styles.subMoodEmoji}>
+										{SUB_MOOD_EMOJIS[subMood]}
+									</Text>
+									<Text
+										style={[
+											styles.subMoodText,
+											{ color: MOOD_METADATA[mood].text },
+										]}
+									>
+										{getSubMoodName(subMood)}
+									</Text>
 								</View>
 							</View>
 						)}
 
 						{/* Note section */}
 						<View style={styles.detailRow}>
-							<View
-								style={[
-									styles.detailIconContainer,
-									{ backgroundColor: iconBackground },
-								]}
-							>
+							<View style={styles.labelContainer}>
 								<Feather
 									name="file-text"
-									size={16}
-									color={MOOD_METADATA[mood].text}
+									size={14}
+									color={`${MOOD_METADATA[mood].text}80`}
+									style={styles.labelIcon}
 								/>
-							</View>
-							<View style={styles.detailContent}>
 								<Text
 									style={[
 										styles.detailLabel,
@@ -146,8 +135,12 @@ export const MoodCard = ({
 								>
 									Note
 								</Text>
+							</View>
+
+							<View style={styles.valueContainer}>
 								<Text
 									style={[styles.noteText, { color: MOOD_METADATA[mood].text }]}
+									numberOfLines={2}
 								>
 									{note || "No note added"}
 								</Text>
@@ -166,18 +159,23 @@ export const MoodCard = ({
 						]}
 					>
 						<View style={styles.stepsRow}>
-							<View
-								style={[
-									styles.stepsIconContainer,
-									{ backgroundColor: iconBackground },
-								]}
-							>
+							<View style={styles.stepsLabelContainer}>
 								<Feather
 									name="activity"
-									size={16}
-									color={MOOD_METADATA[mood].text}
+									size={14}
+									color={`${MOOD_METADATA[mood].text}80`}
+									style={styles.labelIcon}
 								/>
+								<Text
+									style={[
+										styles.detailLabel,
+										{ color: `${MOOD_METADATA[mood].text}80` },
+									]}
+								>
+									Steps
+								</Text>
 							</View>
+
 							<HealthDataDisplay
 								date={date}
 								style={{
@@ -272,25 +270,26 @@ const styles = StyleSheet.create({
 	detailRow: {
 		flexDirection: "row",
 		marginBottom: 16,
-	},
-	detailIconContainer: {
-		width: 32,
-		height: 32,
-		borderRadius: 16,
-		justifyContent: "center",
+		justifyContent: "space-between",
 		alignItems: "center",
-		marginRight: 12,
 	},
-	detailContent: {
-		flex: 1,
-	},
-	detailLabel: {
-		fontSize: 16,
-		marginBottom: 4,
-	},
-	detailValue: {
+	labelContainer: {
 		flexDirection: "row",
 		alignItems: "center",
+		width: "30%",
+	},
+	labelIcon: {
+		marginRight: 6,
+	},
+	detailLabel: {
+		fontSize: 15,
+		fontWeight: "500",
+	},
+	valueContainer: {
+		flexDirection: "row",
+		alignItems: "center",
+		width: "68%",
+		justifyContent: "flex-end",
 	},
 	subMoodEmoji: {
 		fontSize: 18,
@@ -298,10 +297,12 @@ const styles = StyleSheet.create({
 	},
 	subMoodText: {
 		fontSize: 16,
+		fontWeight: "500",
 	},
 	noteText: {
 		fontSize: 16,
-		lineHeight: 22,
+		textAlign: "right",
+		lineHeight: 20,
 	},
 	stepsContainer: {
 		marginHorizontal: -16,
@@ -310,6 +311,11 @@ const styles = StyleSheet.create({
 		borderTopWidth: 1,
 	},
 	stepsRow: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+	},
+	stepsLabelContainer: {
 		flexDirection: "row",
 		alignItems: "center",
 	},
@@ -324,6 +330,7 @@ const styles = StyleSheet.create({
 	healthData: {
 		padding: 0,
 		margin: 0,
-		alignItems: "flex-start",
+		alignItems: "flex-end",
+		flex: 1,
 	},
 });

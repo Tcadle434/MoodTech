@@ -10,11 +10,12 @@ import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 interface HealthDataDisplayProps {
 	date: Date;
 	style?: ViewStyle;
+	textColor?: string;
 }
 
 // Use React.memo with a custom comparison function to prevent unnecessary re-renders
 export const HealthDataDisplay = memo(
-	({ date, style }: HealthDataDisplayProps) => {
+	({ date, style, textColor }: HealthDataDisplayProps) => {
 		const scheme = useColorScheme();
 		const colors = Colors[scheme ?? "light"];
 		const isInitialized = useHealthKitInit();
@@ -23,16 +24,18 @@ export const HealthDataDisplay = memo(
 		// Format the steps number with commas
 		const formattedSteps = useMemo(() => steps.toLocaleString(), [steps]);
 
+		// Use the provided textColor or fall back to the theme color
+		const displayTextColor = textColor || colors.text;
+		const displaySecondaryColor = textColor || colors.textSecondary;
+
 		if (error) {
 			return (
-				<View style={[styles.container, { backgroundColor: colors.background }, style]}>
+				<View style={[styles.container, style]}>
 					<Text
 						category="s2"
-						style={{ color: colors.textSecondary, textAlign: "center" }}
+						style={{ color: displaySecondaryColor, textAlign: "right" }}
 					>
-						{error instanceof Error
-							? error.message
-							: "An error occurred while fetching health data"}
+						{error instanceof Error ? error.message : "Error fetching steps"}
 					</Text>
 				</View>
 			);
@@ -41,35 +44,28 @@ export const HealthDataDisplay = memo(
 		// If not initialized, show a prompt
 		if (!isInitialized) {
 			return (
-				<View style={[styles.container, { backgroundColor: colors.background }, style]}>
+				<View style={[styles.container, style]}>
 					<Text
 						category="s2"
-						style={{ color: colors.textSecondary, textAlign: "center" }}
+						style={{ color: displaySecondaryColor, textAlign: "right" }}
 					>
-						Health data will be shown here once permissions are granted.
-					</Text>
-					<Text
-						category="c1"
-						style={{ color: colors.textSecondary, textAlign: "center", marginTop: 4 }}
-					>
-						The app will automatically request permissions.
+						Waiting for permissions
 					</Text>
 				</View>
 			);
 		}
 
 		return (
-			<View style={[styles.container, { backgroundColor: colors.background }, style]}>
-				<Text category="s2" style={{ color: colors.textSecondary }}>
+			<View style={[styles.container, style]}>
+				<Text category="s2" style={{ color: displaySecondaryColor, textAlign: "right" }}>
 					{isLoading ? (
-						"Loading health data..."
+						"Loading..."
 					) : (
 						<>
-							<Text style={{ fontWeight: "600", color: colors.text }}>
+							<Text style={{ fontWeight: "700", color: displayTextColor }}>
 								{formattedSteps}
 							</Text>
-							{"  "}
-							Steps on this day
+							{" steps"}
 						</>
 					)}
 				</Text>
@@ -82,10 +78,7 @@ export const HealthDataDisplay = memo(
 
 const styles = StyleSheet.create({
 	container: {
-		padding: 16,
-		borderRadius: 16,
-		marginBottom: 24,
-		width: "100%",
-		alignItems: "center",
+		alignItems: "flex-end",
+		justifyContent: "center",
 	},
 });
