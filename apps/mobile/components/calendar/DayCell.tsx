@@ -20,7 +20,7 @@ export const DayCell = (props: DayCellProps) => {
 	if (isFuture(date) && !isSameDay(date, currentDate)) {
 		return (
 			<View style={[styles.dayCell, styles.disabledDayCell, style?.container]} {...cellProps}>
-				<Text style={[style?.text, styles.disabledDayText, { color: colors.subtle }]}>
+				<Text style={[style?.text, styles.disabledDayText, { color: colors.secondary }]}>
 					{`${date.getDate()}`}
 				</Text>
 			</View>

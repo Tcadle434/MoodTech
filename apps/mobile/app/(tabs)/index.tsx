@@ -1,5 +1,13 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
-import { StyleSheet, View, SafeAreaView, Alert, StatusBar, Animated } from "react-native";
+import {
+	StyleSheet,
+	View,
+	SafeAreaView,
+	Alert,
+	StatusBar,
+	Animated,
+	PanResponder,
+} from "react-native";
 import { Layout, Text, Spinner } from "@ui-kitten/components";
 import { format, parseISO } from "date-fns";
 import { MoodType, SubMoodType } from "shared";
@@ -30,6 +38,8 @@ export default function HomeScreen() {
 
 	const fadeAnim = useRef(new Animated.Value(0)).current;
 	const scaleAnim = useRef(new Animated.Value(0.95)).current;
+	const wheelRotateAnim = useRef(new Animated.Value(0)).current;
+	const spinWheelAnim = useRef(new Animated.Value(0)).current;
 
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
@@ -71,8 +81,82 @@ export default function HomeScreen() {
 				duration: 800,
 				useNativeDriver: true,
 			}),
+			Animated.sequence([
+				Animated.delay(400),
+				Animated.spring(wheelRotateAnim, {
+					toValue: 1,
+					friction: 8,
+					tension: 50,
+					useNativeDriver: true,
+				}),
+			]),
 		]).start();
-	}, [fadeAnim, scaleAnim]);
+	}, [fadeAnim, scaleAnim, wheelRotateAnim]);
+
+	const wheelRotate = wheelRotateAnim.interpolate({
+		inputRange: [0, 1],
+		outputRange: ["0deg", "360deg"],
+	});
+
+	const spinRotate = spinWheelAnim.interpolate({
+		inputRange: [-150, 150],
+		outputRange: ["-60deg", "60deg"],
+	});
+
+	useEffect(() => {
+		const wiggleAnimation = Animated.sequence([
+			Animated.timing(spinWheelAnim, {
+				toValue: 15,
+				duration: 800,
+				useNativeDriver: true,
+			}),
+			Animated.timing(spinWheelAnim, {
+				toValue: -15,
+				duration: 800,
+				useNativeDriver: true,
+			}),
+			Animated.timing(spinWheelAnim, {
+				toValue: 0,
+				duration: 500,
+				useNativeDriver: true,
+			}),
+		]);
+
+		const wiggleTimeout = setTimeout(() => {
+			wiggleAnimation.start();
+		}, 2000);
+
+		return () => clearTimeout(wiggleTimeout);
+	}, []);
+
+	const panResponder = useRef(
+		PanResponder.create({
+			onStartShouldSetPanResponder: () => true,
+			onPanResponderMove: (evt, gestureState) => {
+				spinWheelAnim.setValue(gestureState.dx);
+			},
+			onPanResponderRelease: (evt, gestureState) => {
+				const velocity = gestureState.vx;
+				const endValue = Math.abs(velocity) > 1 ? Math.sign(velocity) * 120 : 0;
+
+				Animated.sequence([
+					Animated.decay(spinWheelAnim, {
+						velocity: velocity * 0.3,
+						deceleration: 0.997,
+						useNativeDriver: true,
+					}),
+					Animated.spring(spinWheelAnim, {
+						toValue: 0,
+						friction: 6,
+						tension: 20,
+						useNativeDriver: true,
+					}),
+				]).start();
+			},
+		})
+	).current;
+
+	const rotationStyle = `${spinRotate}deg`;
 
 	return (
 		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
@@ -207,17 +291,72 @@ export default function HomeScreen() {
 							>
 								Tap on an option below to record your mood
 							</Text>
-							<View style={styles.moodRow}>
-								{Object.values(MoodType).map((mood) => (
+
+							{/* Wrapper to position both the wheel and fixed center properly */}
+							<View style={styles.wheelWrapper} {...panResponder.panHandlers}>
+								<Animated.View
+									style={[
+										styles.moodCircleContainer,
+										{
+											transform: [
+												{ rotate: wheelRotate },
+												{ rotate: rotationStyle },
+											],
+										},
+									]}
+								>
+									{Object.values(MoodType)
+										.filter((mood) => mood !== MoodType.HAPPY)
+										.map((mood, index) => {
+											// Calculate position for outer moods in a hexagon
+											// Start at top (-90 degrees) and space 6 items evenly
+											const startAngle = -Math.PI / 2;
+											const angleOffset = (2 * Math.PI) / 6; // 60 degrees
+											const angle = startAngle + index * angleOffset;
+											const radius = 170; // Radius for speech bubbles
+
+											return (
+												<MoodEmoji
+													key={mood}
+													type={mood}
+													style={{
+														position: "absolute",
+														zIndex: 5,
+														transform: [
+															{
+																translateX:
+																	Math.cos(angle) * radius,
+															},
+															{
+																translateY:
+																	Math.sin(angle) * radius,
+															},
+															{ scale: 0.8 },
+														],
+													}}
+													onPress={() => {
+														setSelectedMood(mood);
+														setMoodModalVisible(true);
+													}}
+												/>
+											);
+										})}
+								</Animated.View>
+
+								{/* Fixed center mood positioned relative to wheelWrapper */}
+								<View style={styles.fixedCenterContainer}>
 									<MoodEmoji
-										key={mood}
-										type={mood}
+										key={MoodType.HAPPY}
+										type={MoodType.HAPPY}
+										style={{
+											transform: [{ scale: 0.9 }],
+										}}
 										onPress={() => {
-											setSelectedMood(mood);
+											setSelectedMood(MoodType.HAPPY);
 											setMoodModalVisible(true);
 										}}
 									/>
-								))}
+								</View>
 							</View>
 						</Animated.View>
 					)}
@@ -298,21 +437,31 @@ const styles = StyleSheet.create({
 		textAlign: "center",
 		maxWidth: 280,
 	},
-	moodRow: {
-		flexDirection: "row",
-		flexWrap: "wrap",
+	moodCircleContainer: {
+		width: "100%",
+		height: "100%",
 		justifyContent: "center",
 		alignItems: "center",
-		width: "100%",
-		gap: 16,
-		paddingHorizontal: 16,
 	},
-	moodTouchable: {
-		width: "28%",
-		minWidth: 90,
-		maxWidth: 110,
-		aspectRatio: 0.85,
-		marginBottom: 16,
+	wheelWrapper: {
+		position: "relative",
+		width: 400,
+		height: 400,
+		justifyContent: "center",
+		alignItems: "center",
+		marginTop: 20,
+	},
+	fixedCenterContainer: {
+		position: "absolute",
+		top: "50%",
+		left: "50%",
+		width: 100,
+		height: 100,
+		marginTop: -50,
+		marginLeft: -50,
+		zIndex: 20,
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	moodCardContainer: {
 		width: "100%",
@@ -547,5 +696,10 @@ const styles = StyleSheet.create({
 	stepsLabel: {
 		fontSize: 16,
 		color: "rgba(255, 255, 255, 0.8)",
+	},
+	spinHintText: {
+		marginBottom: 12,
+		opacity: 0.5,
+		fontSize: 14,
 	},
 });

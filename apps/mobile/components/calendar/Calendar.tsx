@@ -1,12 +1,14 @@
 import React, { useState, useCallback } from "react";
 import { View, StyleSheet } from "react-native";
 import { Calendar as UICalendar } from "@ui-kitten/components";
-import { format } from "date-fns";
+import { format, isFuture, isSameDay } from "date-fns";
 import { MoodType, SubMoodType } from "shared";
 import { MoodEntry } from "@/types/calendar";
 import { CalendarDayCell } from "./CalendarDayCell";
 import { MoodModal } from "./MoodModal";
 import { MoodLegend } from "./MoodLegend";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Colors } from "@/constants/Colors";
 
 interface CalendarProps {
 	moods: MoodEntry[];
@@ -14,6 +16,9 @@ interface CalendarProps {
 }
 
 export const Calendar = ({ moods, onSaveMood }: CalendarProps) => {
+	const scheme = useColorScheme();
+	const colors = Colors[scheme ?? "light"];
+
 	const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 	const [selectedDateString, setSelectedDateString] = useState<string | null>(null);
 
@@ -25,8 +30,12 @@ export const Calendar = ({ moods, onSaveMood }: CalendarProps) => {
 
 	const handleDayPress = useCallback(
 		(date: Date) => {
-			setSelectedDate(date);
+			// Prevent selecting future dates (except today)
+			if (isFuture(date) && !isSameDay(date, new Date())) {
+				return;
+			}
 
+			setSelectedDate(date);
 			const dateString = format(date, "yyyy-MM-dd");
 			setSelectedDateString(dateString);
 
@@ -70,9 +79,9 @@ export const Calendar = ({ moods, onSaveMood }: CalendarProps) => {
 				style={styles.calendar}
 			/>
 
-			<View style={styles.legend}>
-				<MoodLegend />
-			</View>
+			<View style={[styles.divider, { backgroundColor: colors.subtle }]} />
+
+			<MoodLegend />
 
 			<MoodModal
 				visible={modalVisible}
@@ -99,7 +108,9 @@ const styles = StyleSheet.create({
 	calendar: {
 		borderRadius: 24,
 	},
-	legend: {
-		marginTop: 20,
+	divider: {
+		height: 1,
+		marginVertical: 5,
+		opacity: 0.4,
 	},
 });
