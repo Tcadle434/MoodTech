@@ -20,6 +20,7 @@ import { MoodEmoji } from "@/components/MoodEmoji";
 import { MoodModal } from "@/components/calendar";
 import { useGetProfile } from "@/hooks/useGetProfile";
 import { MoodCard } from "@/components/MoodCard";
+import { MOOD_FEEDBACK } from "@/constants/MoodConstants";
 
 export default function HomeScreen() {
 	const today = new Date();
@@ -219,7 +220,7 @@ export default function HomeScreen() {
 							<Text
 								style={[styles.motivationalText, { color: colors.textSecondary }]}
 							>
-								Great job logging your mood ✌️
+								{MOOD_FEEDBACK[moodForDate.mood]}
 							</Text>
 						</Animated.View>
 					) : (
