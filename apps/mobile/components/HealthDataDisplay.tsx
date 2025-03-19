@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
 import { Text } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
@@ -9,11 +9,12 @@ import { useHealthKitInit } from "@/hooks/useHealthKitInit";
 
 interface HealthDataDisplayProps {
 	date: Date;
+	style?: ViewStyle;
 }
 
 // Use React.memo with a custom comparison function to prevent unnecessary re-renders
 export const HealthDataDisplay = memo(
-	({ date }: HealthDataDisplayProps) => {
+	({ date, style }: HealthDataDisplayProps) => {
 		const scheme = useColorScheme();
 		const colors = Colors[scheme ?? "light"];
 		const isInitialized = useHealthKitInit();
@@ -24,7 +25,7 @@ export const HealthDataDisplay = memo(
 
 		if (error) {
 			return (
-				<View style={[styles.container, { backgroundColor: colors.background }]}>
+				<View style={[styles.container, { backgroundColor: colors.background }, style]}>
 					<Text
 						category="s2"
 						style={{ color: colors.textSecondary, textAlign: "center" }}
@@ -40,7 +41,7 @@ export const HealthDataDisplay = memo(
 		// If not initialized, show a prompt
 		if (!isInitialized) {
 			return (
-				<View style={[styles.container, { backgroundColor: colors.background }]}>
+				<View style={[styles.container, { backgroundColor: colors.background }, style]}>
 					<Text
 						category="s2"
 						style={{ color: colors.textSecondary, textAlign: "center" }}
@@ -58,7 +59,7 @@ export const HealthDataDisplay = memo(
 		}
 
 		return (
-			<View style={[styles.container, { backgroundColor: colors.background }]}>
+			<View style={[styles.container, { backgroundColor: colors.background }, style]}>
 				<Text category="s2" style={{ color: colors.textSecondary }}>
 					{isLoading ? (
 						"Loading health data..."

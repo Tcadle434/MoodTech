@@ -12,15 +12,14 @@ import { Layout, Text, Spinner } from "@ui-kitten/components";
 import { format, parseISO } from "date-fns";
 import { MoodType, SubMoodType } from "shared";
 import { Colors } from "@/constants/Colors";
-import { LinearGradient } from "expo-linear-gradient";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { HealthDataDisplay } from "@/components/HealthDataDisplay";
-import { MOOD_METADATA, SUB_MOOD_EMOJIS, getSubMoodName } from "@/constants/MoodConstants";
 import { useMoodForDate } from "@/hooks/useMoodForDate";
 import { useSaveMood } from "@/hooks/useSaveMood";
 import { useQueryClient } from "@tanstack/react-query";
 import { MoodEmoji } from "@/components/MoodEmoji";
 import { MoodModal } from "@/components/calendar";
+import { useGetProfile } from "@/hooks/useGetProfile";
+import { MoodCard } from "@/components/MoodCard";
 
 export default function HomeScreen() {
 	const today = new Date();
@@ -30,6 +29,7 @@ export default function HomeScreen() {
 	const queryClient = useQueryClient();
 	const { data: moodForDate, isLoading: isMoodLoading } = useMoodForDate(todayString);
 	const { mutate: saveMood, isPending: isSaving } = useSaveMood();
+	const { data: profile, isLoading: isProfileLoading } = useGetProfile();
 
 	const [moodModalVisible, setMoodModalVisible] = useState(false);
 	const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
@@ -203,74 +203,19 @@ export default function HomeScreen() {
 							>
 								Your mood today
 							</Text>
-							<View
-								style={[
-									styles.todayMoodCardContainer,
-									{ shadowColor: colors.text },
-								]}
-							>
-								<LinearGradient
-									colors={MOOD_METADATA[moodForDate.mood].gradient}
-									start={{ x: 0, y: 0 }}
-									end={{ x: 1, y: 1 }}
-									style={styles.todayMoodCard}
-								>
-									{/* Main Mood Section */}
-									<View style={styles.mainMoodSection}>
-										<Text style={styles.todayEmoji}>
-											{MOOD_METADATA[moodForDate.mood].emoji}
-										</Text>
-										<Text category="s1" style={styles.todayMoodType}>
-											{MOOD_METADATA[moodForDate.mood].name}
-										</Text>
-									</View>
-
-									{/* Separator */}
-									<View style={styles.noteDivider} />
-
-									{/* Details Section */}
-									<View style={styles.detailsContainer}>
-										{/* Submood Section */}
-										{moodForDate.subMood && (
-											<View style={styles.detailRow}>
-												<View style={styles.detailIconContainer}>
-													<Text style={styles.detailIcon}>🔍</Text>
-												</View>
-												<View style={styles.detailContent}>
-													<Text style={styles.detailTitle}>sub-mood</Text>
-													<View style={styles.subMoodContainer}>
-														<Text style={styles.subMoodEmoji}>
-															{SUB_MOOD_EMOJIS[moodForDate.subMood]}
-														</Text>
-														<Text style={styles.subMoodText}>
-															{getSubMoodName(moodForDate.subMood)}
-														</Text>
-													</View>
-												</View>
-											</View>
-										)}
-
-										{/* Note Section */}
-										<View style={styles.detailRow}>
-											<View style={styles.detailIconContainer}>
-												<Text style={styles.detailIcon}>📝</Text>
-											</View>
-											<View style={styles.detailContent}>
-												<Text style={styles.detailTitle}>Note</Text>
-												<Text style={styles.todayMoodNote}>
-													{moodForDate.note || "No note added"}
-												</Text>
-											</View>
-										</View>
-
-										{/* Steps Section */}
-										<View style={styles.stepsSection}>
-											<View style={styles.stepsDivider} />
-											<HealthDataDisplay date={today} />
-										</View>
-									</View>
-								</LinearGradient>
-							</View>
+							<MoodCard
+								mood={moodForDate.mood}
+								subMood={moodForDate.subMood}
+								note={moodForDate.note}
+								date={today}
+								shadowColor={colors.text}
+								onEdit={() => {
+									setSelectedMood(moodForDate.mood);
+									setSelectedSubMood(moodForDate.subMood || null);
+									setNote(moodForDate.note || "");
+									setMoodModalVisible(true);
+								}}
+							/>
 						</Animated.View>
 					) : (
 						<Animated.View
@@ -283,7 +228,19 @@ export default function HomeScreen() {
 								category="h5"
 								style={[styles.promptTitle, { color: colors.text }]}
 							>
-								How are you feeling today?
+								{profile?.name ? (
+									<>
+										Hi{" "}
+										<Text
+											style={[styles.profileName, { color: colors.tertiary }]}
+										>
+											{profile.name}
+										</Text>{" "}
+										👋
+									</>
+								) : (
+									"How are you feeling today?"
+								)}
 							</Text>
 							<Text
 								category="p2"
@@ -421,7 +378,7 @@ const styles = StyleSheet.create({
 	moodPromptContainer: {
 		flex: 1,
 		padding: 24,
-		paddingTop: 40,
+		paddingTop: 24,
 		alignItems: "center",
 	},
 	promptTitle: {
@@ -569,137 +526,10 @@ const styles = StyleSheet.create({
 		fontSize: 24,
 		fontWeight: "600",
 	},
-	todayMoodCardContainer: {
-		borderRadius: 24,
-		overflow: "hidden",
-		shadowOffset: { width: 0, height: 8 },
-		shadowOpacity: 0.15,
-		shadowRadius: 16,
-		elevation: 8,
-	},
-	todayMoodCard: {
-		padding: 28,
-		borderRadius: 24,
-	},
-	todayEmoji: {
-		fontSize: 72,
-		marginBottom: 16,
-		alignSelf: "center",
-		color: "#FFFFFF",
-	},
-	todayMoodType: {
-		textAlign: "center",
-		fontWeight: "700",
+	profileName: {
 		fontSize: 28,
-		color: "#FFFFFF",
-		textShadowColor: "rgba(0, 0, 0, 0.1)",
-		textShadowOffset: { width: 0, height: 1 },
-		textShadowRadius: 2,
-	},
-	noteDivider: {
-		height: 1,
-		width: "100%",
-		backgroundColor: "rgba(255, 255, 255, 0.2)",
-		marginBottom: 24,
-	},
-	detailsContainer: {
-		width: "100%",
-	},
-	detailRow: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-		marginBottom: 20,
-	},
-	detailIconContainer: {
-		width: 36,
-		height: 36,
-		borderRadius: 18,
-		backgroundColor: "rgba(255, 255, 255, 0.2)",
-		marginRight: 16,
-		justifyContent: "center",
-		alignItems: "center",
-	},
-	detailIcon: {
-		fontSize: 18,
-	},
-	detailContent: {
-		flex: 1,
-	},
-	detailTitle: {
-		fontSize: 14,
 		fontWeight: "600",
-		color: "#FFFFFF",
-		marginBottom: 6,
-		opacity: 0.7,
-	},
-	subMoodContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	subMoodEmoji: {
-		fontSize: 20,
-		color: "#FFFFFF",
-		marginRight: 8,
-	},
-	subMoodText: {
-		fontSize: 18,
-		color: "#FFFFFF",
-		fontWeight: "500",
-	},
-	todayMoodNote: {
-		fontStyle: "italic",
-		color: "#FFFFFF",
-		lineHeight: 22,
-		fontSize: 16,
-	},
-	todaySubMoodType: {
-		fontSize: 18,
-		color: "rgba(255, 255, 255, 0.9)",
-		marginBottom: 16,
-		textAlign: "center",
-	},
-	todaySubMoodEmoji: {
-		fontSize: 18,
-		color: "rgba(255, 255, 255, 0.9)",
-		marginBottom: 16,
-		textAlign: "center",
-	},
-	mainMoodSection: {
-		width: "100%",
-		alignItems: "center",
-		marginBottom: 24,
-	},
-	stepsSection: {
-		width: "100%",
-		marginTop: 8,
-	},
-	stepsDivider: {
-		height: 1,
-		width: "100%",
-		backgroundColor: "rgba(255, 255, 255, 0.2)",
-		marginBottom: 20,
-	},
-	stepsRow: {
-		flexDirection: "row",
-		alignItems: "flex-start",
-	},
-	stepsDataContainer: {
-		flexDirection: "row",
-		alignItems: "center",
-	},
-	stepsCount: {
-		fontSize: 20,
-		fontWeight: "700",
-		color: "#FFFFFF",
-		marginRight: 6,
-	},
-	stepsLabel: {
-		fontSize: 16,
-		color: "rgba(255, 255, 255, 0.8)",
-	},
-	spinHintText: {
 		marginBottom: 12,
-		opacity: 0.5,
-		fontSize: 14,
+		textAlign: "center",
 	},
 });
