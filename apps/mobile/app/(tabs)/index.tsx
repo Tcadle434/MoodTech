@@ -216,6 +216,11 @@ export default function HomeScreen() {
 									setMoodModalVisible(true);
 								}}
 							/>
+							<Text
+								style={[styles.motivationalText, { color: colors.textSecondary }]}
+							>
+								Great job logging your mood ✌️
+							</Text>
 						</Animated.View>
 					) : (
 						<Animated.View
@@ -525,6 +530,13 @@ const styles = StyleSheet.create({
 		marginBottom: 20,
 		fontSize: 24,
 		fontWeight: "600",
+	},
+	motivationalText: {
+		textAlign: "center",
+		fontSize: 16,
+		marginTop: 16,
+		fontStyle: "italic",
+		opacity: 0.8,
 	},
 	profileName: {
 		fontSize: 28,
