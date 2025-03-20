@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { themes } from "@/theme/theme";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { Splash } from "@/components/Splash";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -24,37 +25,28 @@ const queryClient = new QueryClient();
 
 // Root layout content that handles auth routing
 function RootLayoutContent() {
-	const { isAuthenticated, isLoading } = useAuth();
-	const segments = useSegments();
-	const router = useRouter();
+	const { isAuthenticated, isLoading, user } = useAuth();
 
-	useEffect(() => {
-		if (isLoading) return;
-
-		const inAuthGroup = segments[0] === "(auth)";
-
-		if (isAuthenticated && inAuthGroup) {
-			// Redirect to the main app if authenticated
-			router.replace("/(tabs)");
-		}
-	}, [isAuthenticated, isLoading, segments]);
-
+	// Don't render anything while we're checking auth status to avoid flashes of screens
 	if (isLoading) {
+		return <Splash />;
+	}
+
+	// If not authenticated, redirect to auth flow
+	if (!isAuthenticated || !user) {
+		return <Stack initialRouteName="(auth)/login" screenOptions={{ headerShown: false }} />;
+	}
+
+	// Check if the user needs to complete onboarding
+	// The user type ensures hasCompletedOnboarding is always available
+	if (!user.hasCompletedOnboarding) {
 		return (
-			<Layout style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-				<Spinner size="giant" />
-				<Text style={{ marginTop: 20 }}>Loading...</Text>
-			</Layout>
+			<Stack initialRouteName="onboarding/welcome" screenOptions={{ headerShown: false }} />
 		);
 	}
 
-	return (
-		<Stack screenOptions={{ headerShown: false }}>
-			<Stack.Screen name="(auth)" options={{ headerShown: false }} />
-			<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-			<Stack.Screen name="+not-found" />
-		</Stack>
-	);
+	// User is authenticated and has completed onboarding, show main app
+	return <Stack initialRouteName="(tabs)" screenOptions={{ headerShown: false }} />;
 }
 
 export default function RootLayout() {

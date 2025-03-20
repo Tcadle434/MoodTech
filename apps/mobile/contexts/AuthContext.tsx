@@ -1,6 +1,9 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from "react";
-import { authService } from "@/api";
-import { User } from "shared";
+import { User as SharedUser } from "shared";
+import { User, ensureUserWithOnboardingStatus } from "@/types/user";
+import apiClient from "@/api/client";
+import apiConfig from "@/api/config";
+import { hasValidTokens } from "@/utils/tokenStorage";
 
 interface AuthContextData {
 	isAuthenticated: boolean;
@@ -14,56 +17,49 @@ interface AuthContextData {
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 	const [isLoading, setIsLoading] = useState<boolean>(true);
 	const [user, setUser] = useState<User | null>(null);
 
-	// Check if user is authenticated on app load
+	// Initialize on first mount
 	useEffect(() => {
-		const checkAuth = async () => {
+		const initializeAuth = async () => {
+			setIsLoading(true);
 			try {
-				const authenticated = await authService.isAuthenticated();
-				setIsAuthenticated(authenticated);
+				// Check if we have a stored token
+				const hasToken = await hasValidTokens();
 
-				if (authenticated) {
-					// Fetch user profile
-					try {
-						const profile = await authService.getProfile();
-						setUser(profile);
-					} catch (profileError) {
-						console.error("Error fetching profile:", profileError);
-						// Don't set unauthenticated here - token might still be valid but profile fetch failed
-					}
+				if (hasToken) {
+					// If we have a token, fetch the current user
+					const userData = await apiClient.get(apiConfig.USERS.PROFILE);
+					const userWithOnboardingStatus = ensureUserWithOnboardingStatus(userData);
+					setUser(userWithOnboardingStatus);
+					setIsAuthenticated(true);
 				}
 			} catch (error) {
-				console.error("Auth check error:", error);
+				console.error("Auth initialization error:", error);
 				setIsAuthenticated(false);
+				setUser(null);
 			} finally {
 				setIsLoading(false);
 			}
 		};
 
-		checkAuth();
+		initializeAuth();
 	}, []);
 
 	// Login function
 	const login = async (email: string, password: string) => {
-		setIsLoading(true);
-
 		try {
-			const response = await authService.login(email, password);
-
-			// Small delay to ensure token is stored
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
+			setIsLoading(true);
+			const response = await apiClient.login(email, password);
+			const userWithOnboardingStatus = ensureUserWithOnboardingStatus(response.user);
+			setUser(userWithOnboardingStatus);
 			setIsAuthenticated(true);
-			setUser(response.user);
-
 			return response;
 		} catch (error) {
 			console.error("Login error:", error);
-			setIsAuthenticated(false);
 			throw error;
 		} finally {
 			setIsLoading(false);
@@ -72,21 +68,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 	// Register function
 	const register = async (email: string, password: string, name?: string) => {
-		setIsLoading(true);
-
 		try {
-			const response = await authService.register(email, password, name);
-
-			// Small delay to ensure token is stored
-			await new Promise((resolve) => setTimeout(resolve, 100));
-
+			setIsLoading(true);
+			const response = await apiClient.register(email, password, name);
+			const userWithOnboardingStatus = ensureUserWithOnboardingStatus(response.user);
+			setUser(userWithOnboardingStatus);
 			setIsAuthenticated(true);
-			setUser(response.user);
-
 			return response;
 		} catch (error) {
-			console.error("Register error:", error);
-			setIsAuthenticated(false);
+			console.error("Registration error:", error);
 			throw error;
 		} finally {
 			setIsLoading(false);
@@ -96,9 +86,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 	// Logout function
 	const logout = async () => {
 		setIsLoading(true);
-
 		try {
-			await authService.logout();
+			await apiClient.logout();
 			setIsAuthenticated(false);
 			setUser(null);
 		} catch (error) {
@@ -110,26 +99,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 	// Update user function - directly updates the user state with partial data
 	const updateUser = (userData: Partial<User>) => {
-		if (user) {
-			setUser({ ...user, ...userData });
-		}
+		setUser((prevUser) => {
+			if (!prevUser) return null;
+			return { ...prevUser, ...userData };
+		});
 	};
 
-	return (
-		<AuthContext.Provider
-			value={{
-				isAuthenticated,
-				isLoading,
-				user,
-				login,
-				register,
-				logout,
-				updateUser,
-			}}
-		>
-			{children}
-		</AuthContext.Provider>
-	);
-};
+	// Provide the updated context value
+	const contextValue: AuthContextData = {
+		isAuthenticated,
+		isLoading,
+		user,
+		login,
+		register,
+		logout,
+		updateUser,
+	};
+
+	return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+}
 
 export const useAuth = () => useContext(AuthContext);

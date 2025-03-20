@@ -174,7 +174,7 @@ export default function HomeScreen() {
 							{profile?.name ? (
 								<>
 									Hi{" "}
-									<Text style={[styles.profileName, { color: colors.tertiary }]}>
+									<Text style={[styles.profileName, { color: colors.secondary }]}>
 										{profile.name}
 									</Text>{" "}
 									👋
