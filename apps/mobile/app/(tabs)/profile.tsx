@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { StyleSheet, ScrollView, SafeAreaView, Animated, StatusBar } from "react-native";
+import { StyleSheet, ScrollView, SafeAreaView, Animated, StatusBar, Modal } from "react-native";
 import { Layout } from "@ui-kitten/components";
 import { useAuth } from "@/contexts/AuthContext";
 import { Colors } from "@/constants/Colors";
@@ -13,6 +13,10 @@ import { StatsGrid } from "@/components/profile/StatsGrid";
 import { BadgesGrid } from "@/components/profile/BadgesGrid";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useAllMoods } from "@/hooks/useAllMoods";
+import { AvatarSelector } from "@/components/profile/AvatarSelector";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { authService } from "@/api/authService";
+import { Alert } from "react-native";
 
 interface MoodEntry {
 	date: string;
@@ -29,6 +33,27 @@ export default function ProfileScreen() {
 	const router = useRouter();
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
+	const queryClient = useQueryClient();
+
+	// Avatar editing state
+	const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+	const [avatarId, setAvatarId] = useState<string | null>((user as any)?.avatarId || null);
+
+	// Update profile mutation for avatar changes
+	const updateProfile = useMutation({
+		mutationFn: async (data: { avatarId: string }) => {
+			if (!user?.id) throw new Error("User ID not found");
+			return authService.updateProfile(user.id, data);
+		},
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["profile"] });
+			Alert.alert("Success", "Your avatar has been updated");
+		},
+		onError: (error) => {
+			console.error("Error updating avatar:", error);
+			Alert.alert("Error", "Failed to update your avatar. Please try again.");
+		},
+	});
 
 	// Stat counts
 	const [totalDays, setTotalDays] = useState(0);
@@ -153,6 +178,12 @@ export default function ProfileScreen() {
 		]).start();
 	}, [fadeAnim, scaleAnim]);
 
+	const handleSelectAvatar = (id: string) => {
+		setAvatarId(id);
+		updateProfile.mutate({ avatarId: id });
+		setAvatarModalVisible(false);
+	};
+
 	const handleSettingsPress = () => {
 		router.push("/settings");
 	};
@@ -173,7 +204,9 @@ export default function ProfileScreen() {
 						<UserInfo
 							name={user?.name || null}
 							email={user?.email || null}
-							avatarUrl={null}
+							avatarId={(user as any)?.avatarId || null}
+							onAvatarPress={() => setAvatarModalVisible(true)}
+							editable={true}
 						/>
 
 						{isMoodsLoading ? (
@@ -195,6 +228,22 @@ export default function ProfileScreen() {
 							</>
 						)}
 					</ScrollView>
+
+					<Modal
+						visible={avatarModalVisible}
+						animationType="slide"
+						onRequestClose={() => setAvatarModalVisible(false)}
+					>
+						<Layout style={[{ flex: 1, backgroundColor: colors.background }]}>
+							<SafeAreaView style={{ flex: 1 }}>
+								<AvatarSelector
+									selectedAvatarId={avatarId}
+									onSelectAvatar={handleSelectAvatar}
+									onClose={() => setAvatarModalVisible(false)}
+								/>
+							</SafeAreaView>
+						</Layout>
+					</Modal>
 				</SafeAreaView>
 			</Animated.View>
 		</Layout>

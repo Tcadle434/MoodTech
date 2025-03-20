@@ -20,6 +20,9 @@ export class User {
   @Column({ nullable: true })
   name: string;
 
+  @Column({ nullable: true })
+  avatarId: string;
+
   @Column()
   @Exclude() // Don't expose hashed password in responses
   password: string;

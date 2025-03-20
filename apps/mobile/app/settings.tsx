@@ -21,8 +21,7 @@ export default function SettingsScreen() {
 	};
 
 	const handleEditProfile = () => {
-		// TODO: Navigate to edit profile screen
-		console.log("Navigate to edit profile");
+		router.push("/edit-profile");
 	};
 
 	const handleNotifications = () => {
