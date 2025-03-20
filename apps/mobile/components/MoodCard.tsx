@@ -182,6 +182,7 @@ export const MoodCard = ({
 									...styles.healthData,
 									backgroundColor: "transparent",
 								}}
+								textColor={`${MOOD_METADATA[mood].text}80`}
 							/>
 						</View>
 					</View>

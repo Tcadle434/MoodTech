@@ -25,7 +25,7 @@ export const HealthDataDisplay = memo(
 		const formattedSteps = useMemo(() => steps.toLocaleString(), [steps]);
 
 		// Use the provided textColor or fall back to the theme color
-		const displayTextColor = textColor || colors.text;
+		const displayTextColor = colors.text;
 		const displaySecondaryColor = textColor || colors.textSecondary;
 
 		if (error) {

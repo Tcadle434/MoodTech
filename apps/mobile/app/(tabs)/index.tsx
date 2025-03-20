@@ -171,7 +171,17 @@ export default function HomeScreen() {
 				<SafeAreaView style={styles.safeArea}>
 					<View style={styles.header}>
 						<Text category="h1" style={[styles.headerTitle, { color: colors.text }]}>
-							Today
+							{profile?.name ? (
+								<>
+									Hi{" "}
+									<Text style={[styles.profileName, { color: colors.tertiary }]}>
+										{profile.name}
+									</Text>{" "}
+									👋
+								</>
+							) : (
+								"Hello!"
+							)}{" "}
 						</Text>
 						<Text
 							category="s1"
@@ -234,19 +244,7 @@ export default function HomeScreen() {
 								category="h5"
 								style={[styles.promptTitle, { color: colors.text }]}
 							>
-								{profile?.name ? (
-									<>
-										Hi{" "}
-										<Text
-											style={[styles.profileName, { color: colors.tertiary }]}
-										>
-											{profile.name}
-										</Text>{" "}
-										👋
-									</>
-								) : (
-									"How are you feeling today?"
-								)}
+								How are you today?
 							</Text>
 							<Text
 								category="p2"
@@ -363,9 +361,9 @@ const styles = StyleSheet.create({
 		paddingTop: 48,
 	},
 	headerTitle: {
-		fontSize: 34,
+		fontSize: 32,
 		marginBottom: 4,
-		fontWeight: "700",
+		fontWeight: "600",
 	},
 	headerDate: {
 		fontSize: 16,
@@ -540,7 +538,7 @@ const styles = StyleSheet.create({
 		opacity: 0.8,
 	},
 	profileName: {
-		fontSize: 28,
+		fontSize: 32,
 		fontWeight: "600",
 		marginBottom: 12,
 		textAlign: "center",
