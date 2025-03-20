@@ -29,7 +29,7 @@ interface MonthEntries {
 
 export default function ProfileScreen() {
 	const { data: moods, isLoading: isMoodsLoading } = useAllMoods();
-	const { user } = useAuth();
+	const { user, updateUser } = useAuth();
 	const router = useRouter();
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
@@ -45,7 +45,11 @@ export default function ProfileScreen() {
 			if (!user?.id) throw new Error("User ID not found");
 			return authService.updateProfile(user.id, data);
 		},
-		onSuccess: () => {
+		onSuccess: (_, variables) => {
+			// Update the local UI immediately
+			updateUser({ avatarId: variables.avatarId });
+
+			// Invalidate queries to ensure data consistency
 			queryClient.invalidateQueries({ queryKey: ["profile"] });
 			Alert.alert("Success", "Your avatar has been updated");
 		},

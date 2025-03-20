@@ -24,7 +24,7 @@ export default function EditProfileScreen() {
 	const queryClient = useQueryClient();
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
-	const { user } = useAuth();
+	const { user, updateUser } = useAuth();
 
 	const [name, setName] = useState(user?.name || "");
 	const [avatarId, setAvatarId] = useState<string | null>((user as any)?.avatarId || null);
@@ -36,7 +36,14 @@ export default function EditProfileScreen() {
 			if (!user?.id) throw new Error("User ID not found");
 			return authService.updateProfile(user.id, data);
 		},
-		onSuccess: () => {
+		onSuccess: (_, variables) => {
+			// Update the local UI immediately
+			updateUser({
+				name: variables.name,
+				avatarId: variables.avatarId,
+			});
+
+			// Invalidate queries to ensure data consistency
 			queryClient.invalidateQueries({ queryKey: ["profile"] });
 			Alert.alert("Success", "Your profile has been updated");
 			router.back();

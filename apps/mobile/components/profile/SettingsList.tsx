@@ -8,7 +8,6 @@ interface SettingsListProps {
 	isHealthKitInitialized: boolean;
 	onEditProfilePress: () => void;
 	onNotificationsPress: () => void;
-	onPrivacyPress: () => void;
 	onHealthDataPress: () => void;
 	onLogoutPress: () => void;
 }
@@ -17,7 +16,6 @@ export const SettingsList = ({
 	isHealthKitInitialized,
 	onEditProfilePress,
 	onNotificationsPress,
-	onPrivacyPress,
 	onHealthDataPress,
 	onLogoutPress,
 }: SettingsListProps) => {
@@ -56,23 +54,6 @@ export const SettingsList = ({
 					style={[styles.settingIcon, { tintColor: colors.text }]}
 				/>
 				<Text style={[styles.settingText, { color: colors.text }]}>Notifications</Text>
-				<Icon
-					name="chevron-right-outline"
-					style={[styles.chevronIcon, { tintColor: colors.textSecondary }]}
-				/>
-			</TouchableOpacity>
-
-			<Divider style={[styles.divider, { backgroundColor: colors.subtle }]} />
-
-			<TouchableOpacity
-				style={[styles.settingRow, { backgroundColor: colors.surface }]}
-				onPress={onPrivacyPress}
-			>
-				<Icon
-					name="shield-outline"
-					style={[styles.settingIcon, { tintColor: colors.text }]}
-				/>
-				<Text style={[styles.settingText, { color: colors.text }]}>Privacy</Text>
 				<Icon
 					name="chevron-right-outline"
 					style={[styles.chevronIcon, { tintColor: colors.textSecondary }]}
