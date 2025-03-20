@@ -174,7 +174,17 @@ export const SUB_MOOD_EMOJIS: Record<SubMoodType, string> = {
 	[SubMoodType.GUILTY]: "😣",
 	[SubMoodType.DEPRESSED]: "⛈️",
 	[SubMoodType.HURT]: "💔",
-	[SubMoodType.INFERIOR]: "🐛",
+	[SubMoodType.INFERIOR]: "��",
+};
+
+export const MOOD_FEEDBACK: Record<MoodType, string> = {
+	[MoodType.HAPPY]: "Nice! Keep that positive energy going ✨",
+	[MoodType.SAD]: "It's okay to feel down sometimes. Take care of yourself 💙",
+	[MoodType.SURPRISED]: "Life is full of surprises! Hope it was a good one 🎁",
+	[MoodType.FEARFUL]: "Remember that you're stronger than your fears 💪",
+	[MoodType.ANGRY]: "Take a deep breath. Tomorrow is a new day 🌅",
+	[MoodType.DISGUSTED]: "Thanks for sharing how you feel. Hope tomorrow is better 🌱",
+	[MoodType.BAD]: "Self-awareness is the first step to feeling better 🌈",
 };
 
 export const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "light"): string => {
@@ -184,4 +194,8 @@ export const getMoodColor = (mood: MoodType, colorScheme: "light" | "dark" = "li
 
 export const getSubMoodName = (subMood: SubMoodType): string => {
 	return subMood.charAt(0).toUpperCase() + subMood.slice(1).toLowerCase();
+};
+
+export const getSubMoodsForMood = (mood: MoodType): SubMoodType[] => {
+	return MOOD_METADATA[mood].subMoods;
 };
