@@ -81,6 +81,7 @@ export interface User {
 	id: string;
 	email: string;
 	name?: string;
+	avatarId?: string;
 	createdAt: string;
 	updatedAt: string;
 }

@@ -1,26 +1,42 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Text, Avatar } from "@ui-kitten/components";
+import { View, StyleSheet, TouchableOpacity } from "react-native";
+import { Text, Avatar, Icon } from "@ui-kitten/components";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
+import { getAvatarSourceById } from "@/constants/AvatarConstants";
 
 interface UserInfoProps {
 	name: string | null;
 	email: string | null;
-	avatarUrl: string | null;
+	avatarId: string | null;
+	onAvatarPress?: () => void;
+	editable?: boolean;
 }
 
-export const UserInfo = ({ name, email, avatarUrl }: UserInfoProps) => {
+export const UserInfo = ({
+	name,
+	email,
+	avatarId,
+	onAvatarPress,
+	editable = false,
+}: UserInfoProps) => {
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
 
 	return (
 		<View style={styles.profileSection}>
-			<Avatar
-				style={styles.avatar}
-				size="giant"
-				source={avatarUrl ? { uri: avatarUrl } : require("@/assets/images/icon.png")}
-			/>
+			<TouchableOpacity
+				style={styles.avatarContainer}
+				onPress={onAvatarPress}
+				disabled={!editable}
+			>
+				<Avatar style={styles.avatar} size="giant" source={getAvatarSourceById(avatarId)} />
+				{editable && (
+					<View style={[styles.editIconContainer, { backgroundColor: colors.tertiary }]}>
+						<Icon name="edit-2-outline" style={styles.editIcon} fill="#FFFFFF" />
+					</View>
+				)}
+			</TouchableOpacity>
 			<Text category="h5" style={[styles.userName, { color: colors.text }]}>
 				{name || "User"}
 			</Text>
@@ -36,10 +52,29 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 		paddingVertical: 20,
 	},
+	avatarContainer: {
+		position: "relative",
+		marginBottom: 16,
+	},
 	avatar: {
 		width: 100,
 		height: 100,
-		marginBottom: 16,
+	},
+	editIconContainer: {
+		position: "absolute",
+		bottom: 0,
+		right: 0,
+		width: 30,
+		height: 30,
+		borderRadius: 15,
+		justifyContent: "center",
+		alignItems: "center",
+		borderWidth: 2,
+		borderColor: "#FFFFFF",
+	},
+	editIcon: {
+		width: 16,
+		height: 16,
 	},
 	userName: {
 		marginBottom: 4,
