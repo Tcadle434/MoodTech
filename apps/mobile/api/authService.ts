@@ -1,6 +1,7 @@
 import apiClient from "./client";
 import apiConfig from "./config";
 import { validateToken } from "./client";
+import { User } from "shared";
 
 // Services for authentication-related API calls
 export const authService = {
@@ -30,7 +31,13 @@ export const authService = {
 	},
 
 	// Update user profile
-	updateProfile: async (userId: string, data: { name?: string; avatarId?: string }) => {
-		return apiClient.put(`${apiConfig.USERS.BASE}/${userId}`, data);
+	updateProfile: async (userId: string, userData: Partial<User>) => {
+		return apiClient.put(`${apiConfig.USERS.BASE}/${userId}`, userData);
+	},
+
+	completeOnboarding: async (userId: string) => {
+		return apiClient.put(`${apiConfig.USERS.BASE}/${userId}`, {
+			hasCompletedOnboarding: true,
+		});
 	},
 };

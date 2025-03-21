@@ -24,7 +24,7 @@ const queryClient = new QueryClient();
 
 // Root layout content that handles auth routing
 function RootLayoutContent() {
-	const { isAuthenticated, isLoading } = useAuth();
+	const { isAuthenticated, isLoading, user } = useAuth();
 	const segments = useSegments();
 	const router = useRouter();
 
@@ -33,9 +33,10 @@ function RootLayoutContent() {
 
 		const inAuthGroup = segments[0] === "(auth)";
 
-		if (isAuthenticated && inAuthGroup) {
-			// Redirect to the main app if authenticated
+		if (isAuthenticated && inAuthGroup && user && user.hasCompletedOnboarding) {
 			router.replace("/(tabs)");
+		} else if (isAuthenticated && inAuthGroup && user && !user.hasCompletedOnboarding) {
+			router.replace("/onboarding/welcome");
 		}
 	}, [isAuthenticated, isLoading, segments]);
 

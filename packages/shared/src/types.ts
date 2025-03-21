@@ -82,6 +82,7 @@ export interface User {
 	email: string;
 	name?: string;
 	avatarId?: string;
+	hasCompletedOnboarding?: boolean;
 	createdAt: string;
 	updatedAt: string;
 }

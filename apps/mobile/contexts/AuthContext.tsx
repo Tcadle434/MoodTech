@@ -27,13 +27,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 				setIsAuthenticated(authenticated);
 
 				if (authenticated) {
-					// Fetch user profile
 					try {
 						const profile = await authService.getProfile();
 						setUser(profile);
 					} catch (profileError) {
 						console.error("Error fetching profile:", profileError);
-						// Don't set unauthenticated here - token might still be valid but profile fetch failed
 					}
 				}
 			} catch (error) {
