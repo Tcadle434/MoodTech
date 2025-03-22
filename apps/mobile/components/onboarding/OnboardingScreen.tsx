@@ -27,12 +27,10 @@ export const OnboardingScreen = ({
 	image,
 	nextScreenPath,
 	showSkipButton = true,
-	showSkipAllButton = true,
 	isLastScreen = false,
 	children,
 	onComplete,
 	onSkip,
-	onSkipAll,
 }: OnboardingScreenProps) => {
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];

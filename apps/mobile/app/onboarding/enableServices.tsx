@@ -1,11 +1,27 @@
 import React from "react";
-import { StyleSheet, View } from "react-native";
-import { Text } from "@ui-kitten/components";
+import { StyleSheet, View, TouchableOpacity, Alert } from "react-native";
+import { Text, Icon } from "@ui-kitten/components";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { useCompleteOnboarding } from "@/hooks/useCompleteOnboarding";
+import { useHealthKitInit } from "@/hooks/useHealthKitInit";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { Colors } from "@/constants/Colors";
 
 export default function EnableServicesScreen() {
 	const { skipAllOnboarding } = useCompleteOnboarding();
+	const isHealthKitInitialized = useHealthKitInit();
+	const scheme = useColorScheme();
+	const colors = Colors[scheme ?? "light"];
+
+	const handleHealthDataPress = () => {
+		Alert.alert(
+			isHealthKitInitialized ? "Health Data Connected" : "Health Data Not Connected",
+			isHealthKitInitialized
+				? "Your Apple Health data is connected to Align. Your steps and other health metrics will be shown alongside your mood entries."
+				: "Health data integration is managed automatically. The app will prompt you for permissions when needed.",
+			[{ text: "OK", style: "default" }]
+		);
+	};
 
 	return (
 		<OnboardingScreen
@@ -16,77 +32,98 @@ export default function EnableServicesScreen() {
 			nextScreenPath="/onboarding/complete"
 			onSkipAll={skipAllOnboarding}
 		>
-			{/* <View style={styles.featuresContainer}>
-				<FeatureItem
-					icon="💭"
-					title="Mood Tracking"
-					description="Record your emotions daily"
-				/>
-				<FeatureItem
-					icon="🏃‍♂️"
-					title="Health Integration"
-					description="Connect with various health and activity data"
-				/>
-				<FeatureItem
-					icon="🧠"
-					title="Pattern Analysis"
-					description="Understand your emotional trends"
-				/>
-			</View> */}
+			<View style={styles.featuresContainer}>
+				<TouchableOpacity
+					style={[styles.settingRow, { backgroundColor: colors.surface }]}
+					onPress={handleHealthDataPress}
+				>
+					<Icon
+						name="heart-outline"
+						style={[styles.settingIcon, { tintColor: colors.text }]}
+					/>
+					<Text style={[styles.settingText, { color: colors.text }]}>Health Data</Text>
+					<View style={styles.settingRightContent}>
+						{isHealthKitInitialized ? (
+							<View
+								style={[
+									styles.connectedBadge,
+									{ backgroundColor: colors.tertiary },
+								]}
+							>
+								<Text style={styles.connectedText}>Enabled</Text>
+							</View>
+						) : (
+							<View
+								style={[styles.connectedBadge, { backgroundColor: colors.subtle }]}
+							>
+								<Text
+									style={[styles.connectedText, { color: colors.textSecondary }]}
+								>
+									Not Connected
+								</Text>
+							</View>
+						)}
+						<Icon
+							name="chevron-right-outline"
+							style={[styles.chevronIcon, { tintColor: colors.textSecondary }]}
+						/>
+					</View>
+				</TouchableOpacity>
+			</View>
+			<View style={styles.featuresContainer}>
+				<TouchableOpacity style={[styles.settingRow, { backgroundColor: colors.surface }]}>
+					<Icon
+						name="navigation-2-outline"
+						style={[styles.settingIcon, { tintColor: colors.text }]}
+					/>
+					<Text style={[styles.settingText, { color: colors.text }]}>
+						Location Services
+					</Text>
+				</TouchableOpacity>
+			</View>
 		</OnboardingScreen>
 	);
 }
-
-const FeatureItem = ({
-	icon,
-	title,
-	description,
-}: {
-	icon: string;
-	title: string;
-	description: string;
-}) => {
-	return (
-		<View style={styles.featureItem}>
-			<Text style={styles.featureIcon}>{icon}</Text>
-			<View style={styles.featureTextContainer}>
-				<Text category="h6" style={styles.featureTitle}>
-					{title}
-				</Text>
-				<Text category="p2" style={styles.featureDescription}>
-					{description}
-				</Text>
-			</View>
-		</View>
-	);
-};
 
 const styles = StyleSheet.create({
 	featuresContainer: {
 		width: "100%",
 		paddingHorizontal: 16,
-		marginTop: 20,
 	},
-	featureItem: {
+	settingRow: {
 		flexDirection: "row",
 		alignItems: "center",
-		marginBottom: 24,
+		paddingVertical: 16,
 		paddingHorizontal: 16,
-		paddingVertical: 12,
-		borderRadius: 12,
-		backgroundColor: "rgba(0, 0, 0, 0.02)",
+		borderRadius: 16,
+		marginBottom: 8,
 	},
-	featureIcon: {
-		fontSize: 32,
+	settingIcon: {
+		width: 22,
+		height: 22,
 		marginRight: 16,
 	},
-	featureTextContainer: {
+	settingText: {
 		flex: 1,
+		fontSize: 16,
 	},
-	featureTitle: {
-		marginBottom: 4,
+	chevronIcon: {
+		width: 18,
+		height: 18,
 	},
-	featureDescription: {
-		opacity: 0.7,
+	settingRightContent: {
+		flexDirection: "row",
+		alignItems: "center",
+	},
+	connectedBadge: {
+		paddingHorizontal: 8,
+		paddingVertical: 4,
+		borderRadius: 12,
+		marginRight: 8,
+	},
+	connectedText: {
+		color: "#FFFFFF",
+		fontSize: 12,
+		fontWeight: "600",
 	},
 });

@@ -21,19 +21,19 @@ export default function CompleteScreen() {
 			]}
 		>
 			<View style={styles.content}>
-				{/* <Image
-					source={require("@/assets/images/onboarding/onboarding-complete.png")}
+				<Image
+					source={require("@/assets/images/welcome-splash.png")}
 					style={styles.image}
 					resizeMode="contain"
-				/> */}
+				/>
 
 				<Text category="h1" style={styles.title}>
 					You're All Set!
 				</Text>
 
 				<Text style={styles.description}>
-					Thank you for completing the setup. You're ready to start tracking your moods
-					and discovering patterns that can help improve your wellbeing.
+					Welcome to Align. You've just taken the first step to understanding yourself
+					better.
 				</Text>
 
 				<Button style={styles.button} size="large" onPress={handleComplete}>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
 	},
 	image: {
 		width: "80%",
-		height: 200,
+		height: 400,
 		marginBottom: 30,
 	},
 	title: {
