@@ -7,6 +7,7 @@ import { useRouter } from "expo-router";
 
 interface OnboardingScreenProps {
 	title: string;
+	subTitle?: string;
 	description: string;
 	image?: ImageSourcePropType;
 	nextScreenPath?: string;
@@ -21,6 +22,7 @@ interface OnboardingScreenProps {
 
 export const OnboardingScreen = ({
 	title,
+	subTitle,
 	description,
 	image,
 	nextScreenPath,
@@ -54,12 +56,6 @@ export const OnboardingScreen = ({
 		}
 	};
 
-	const handleSkipAll = () => {
-		if (onSkipAll) {
-			onSkipAll();
-		}
-	};
-
 	return (
 		<Layout style={[styles.container, { backgroundColor: colors.background }]}>
 			<SafeAreaView style={styles.safeArea}>
@@ -68,9 +64,14 @@ export const OnboardingScreen = ({
 						{image && (
 							<Image source={image} style={styles.image} resizeMode="contain" />
 						)}
-						<Text category="h3" style={[styles.title, { color: colors.text }]}>
+						<Text category="h1" style={[styles.title, { color: colors.text }]}>
 							{title}
 						</Text>
+						{subTitle && (
+							<Text category="h4" style={[styles.subTitle, { color: colors.text }]}>
+								{subTitle}
+							</Text>
+						)}
 						<Text
 							category="p1"
 							style={[styles.description, { color: colors.textSecondary }]}
@@ -82,6 +83,10 @@ export const OnboardingScreen = ({
 					<View style={styles.mainContent}>{children}</View>
 
 					<View style={styles.footer}>
+						<Button onPress={handleNext} style={styles.nextButton}>
+							{isLastScreen ? "Complete" : "Next"}
+						</Button>
+
 						{showSkipButton && !isLastScreen && (
 							<Button
 								appearance="ghost"
@@ -89,21 +94,6 @@ export const OnboardingScreen = ({
 								style={styles.skipButton}
 							>
 								Skip
-							</Button>
-						)}
-
-						<Button onPress={handleNext} style={styles.nextButton}>
-							{isLastScreen ? "Complete" : "Next"}
-						</Button>
-
-						{showSkipAllButton && !isLastScreen && (
-							<Button
-								appearance="ghost"
-								status="basic"
-								onPress={handleSkipAll}
-								style={styles.skipAllButton}
-							>
-								Skip All
 							</Button>
 						)}
 					</View>
@@ -130,14 +120,17 @@ const styles = StyleSheet.create({
 		marginTop: 20,
 	},
 	image: {
-		width: 200,
-		height: 200,
-		marginBottom: 24,
+		width: 150,
+		height: 150,
 	},
 	title: {
 		textAlign: "center",
-		marginBottom: 16,
+		marginBottom: 32,
 		fontWeight: "bold",
+	},
+	subTitle: {
+		textAlign: "center",
+		marginBottom: 24,
 	},
 	description: {
 		textAlign: "center",

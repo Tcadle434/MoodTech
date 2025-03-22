@@ -4,19 +4,19 @@ import { Text } from "@ui-kitten/components";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { useCompleteOnboarding } from "@/hooks/useCompleteOnboarding";
 
-export default function WelcomeScreen() {
+export default function EnableServicesScreen() {
 	const { skipAllOnboarding } = useCompleteOnboarding();
 
 	return (
 		<OnboardingScreen
 			title="Align"
-			subTitle="Take control of how you feel"
-			description="Track your mood, understand your patterns, and improve your emotional wellbeing."
+			subTitle="Requesting Permissions"
+			description="Get personalized insights by granting these permissions"
 			image={require("@/assets/images/align-logo-transparent.png")}
-			nextScreenPath="/onboarding/enableServices"
+			nextScreenPath="/onboarding/complete"
 			onSkipAll={skipAllOnboarding}
 		>
-			<View style={styles.featuresContainer}>
+			{/* <View style={styles.featuresContainer}>
 				<FeatureItem
 					icon="💭"
 					title="Mood Tracking"
@@ -32,7 +32,7 @@ export default function WelcomeScreen() {
 					title="Pattern Analysis"
 					description="Understand your emotional trends"
 				/>
-			</View>
+			</View> */}
 		</OnboardingScreen>
 	);
 }
