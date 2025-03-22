@@ -59,6 +59,12 @@
 					"backgroundColor": "#ffffff"
 				}
 			],
+			[
+				"expo-location",
+				{
+					"locationAlwaysAndWhenInUsePermission": "Allow Align to use your location."
+				}
+			],
 			"react-native-health"
 		],
 		"experiments": {

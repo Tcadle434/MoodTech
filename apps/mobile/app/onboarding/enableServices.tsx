@@ -4,12 +4,14 @@ import { Text, Icon } from "@ui-kitten/components";
 import { OnboardingScreen } from "@/components/onboarding/OnboardingScreen";
 import { useCompleteOnboarding } from "@/hooks/useCompleteOnboarding";
 import { useHealthKitInit } from "@/hooks/useHealthKitInit";
+import { useLocationInit } from "@/hooks/useLocationInit";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { Colors } from "@/constants/Colors";
 
 export default function EnableServicesScreen() {
 	const { skipAllOnboarding } = useCompleteOnboarding();
 	const isHealthKitInitialized = useHealthKitInit();
+	const isLocationInitialized = useLocationInit();
 	const scheme = useColorScheme();
 	const colors = Colors[scheme ?? "light"];
 
@@ -19,6 +21,18 @@ export default function EnableServicesScreen() {
 			isHealthKitInitialized
 				? "Your Apple Health data is connected to Align. Your steps and other health metrics will be shown alongside your mood entries."
 				: "Health data integration is managed automatically. The app will prompt you for permissions when needed.",
+			[{ text: "OK", style: "default" }]
+		);
+	};
+
+	const handleLocationPress = () => {
+		Alert.alert(
+			isLocationInitialized
+				? "Location Services Connected"
+				: "Location Services Not Connected",
+			isLocationInitialized
+				? "Location services are enabled. Align will use your location to provide more relevant insights."
+				: "Location services are managed automatically. The app will prompt you for permissions when needed.",
 			[{ text: "OK", style: "default" }]
 		);
 	};
@@ -71,7 +85,10 @@ export default function EnableServicesScreen() {
 				</TouchableOpacity>
 			</View>
 			<View style={styles.featuresContainer}>
-				<TouchableOpacity style={[styles.settingRow, { backgroundColor: colors.surface }]}>
+				<TouchableOpacity
+					style={[styles.settingRow, { backgroundColor: colors.surface }]}
+					onPress={handleLocationPress}
+				>
 					<Icon
 						name="navigation-2-outline"
 						style={[styles.settingIcon, { tintColor: colors.text }]}
@@ -79,6 +96,32 @@ export default function EnableServicesScreen() {
 					<Text style={[styles.settingText, { color: colors.text }]}>
 						Location Services
 					</Text>
+					<View style={styles.settingRightContent}>
+						{isLocationInitialized ? (
+							<View
+								style={[
+									styles.connectedBadge,
+									{ backgroundColor: colors.tertiary },
+								]}
+							>
+								<Text style={styles.connectedText}>Enabled</Text>
+							</View>
+						) : (
+							<View
+								style={[styles.connectedBadge, { backgroundColor: colors.subtle }]}
+							>
+								<Text
+									style={[styles.connectedText, { color: colors.textSecondary }]}
+								>
+									Not Connected
+								</Text>
+							</View>
+						)}
+						<Icon
+							name="chevron-right-outline"
+							style={[styles.chevronIcon, { tintColor: colors.textSecondary }]}
+						/>
+					</View>
 				</TouchableOpacity>
 			</View>
 		</OnboardingScreen>
