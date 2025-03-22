@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
@@ -49,7 +53,7 @@ export class UsersService {
 
   async update(id: string, updates: Partial<User>): Promise<User> {
     const user = await this.findOne(id);
-    
+
     // If trying to update password, hash it
     if (updates.password) {
       updates.password = await bcrypt.hash(updates.password, 10);

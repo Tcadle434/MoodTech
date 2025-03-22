@@ -23,6 +23,9 @@ export class User {
   @Column({ nullable: true })
   avatarId: string;
 
+  @Column({ default: false })
+  hasCompletedOnboarding: boolean;
+
   @Column()
   @Exclude() // Don't expose hashed password in responses
   password: string;
